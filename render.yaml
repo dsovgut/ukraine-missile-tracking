@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: ukraine-missile-tracker
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: |
+      pip install -r requirements.txt
+      cd frontend && npm ci && npm run build
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: KAGGLE_USERNAME
+        sync: false          # Set in Render dashboard
+      - key: KAGGLE_KEY
+        sync: false          # Set in Render dashboard
+      - key: DATA_DIR
+        value: /var/data     # Persistent disk mount point
+    disk:
+      name: missile-data
+      mountPath: /var/data
+      sizeGB: 1
