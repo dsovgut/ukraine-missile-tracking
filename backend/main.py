@@ -46,6 +46,12 @@ if os.path.isdir(FRONTEND_DIST):
 
     @app.get("/{full_path:path}", include_in_schema=False)
     async def serve_spa(full_path: str):
+        # Serve actual files from dist/ if they exist (favicon.svg, manifest.json, etc.)
+        if full_path:
+            file_path = os.path.join(FRONTEND_DIST, full_path)
+            if os.path.isfile(file_path):
+                return FileResponse(file_path)
+        # Fall back to SPA index.html for client-side routing
         return FileResponse(os.path.join(FRONTEND_DIST, "index.html"))
 else:
     @app.get("/", include_in_schema=False)
