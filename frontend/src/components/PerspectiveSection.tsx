@@ -8,15 +8,11 @@ import {
   DESERT_STORM_MISSILES,
   IRON_DOME_RATE,
   US_WWII_DAYS,
-  SCHOOL_COST_USD,
-  HOSPITAL_BED_COST_USD,
-  VACCINE_COST_USD,
   AVG_MISSILE_WARHEAD_KG,
   AVG_DRONE_WARHEAD_KG,
   HIROSHIMA_YIELD_KT,
   SHOCK_AND_AWE_MISSILES,
   RUSSIA_CUMULATIVE_DEFENSE_SPEND,
-  ISS_COST,
   RUSSIA_DEFENSE_BUDGET_SHARE,
   RUSSIA_POPULATION,
   estimateTotalMissileCost,
@@ -70,7 +66,6 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
   const hiroshimaFraction = totalPayloadKt / HIROSHIMA_YIELD_KT;
 
   // Russia war economy
-  const issEquivalent = Math.round(RUSSIA_CUMULATIVE_DEFENSE_SPEND / ISS_COST);
   const costPerCitizen = Math.round(RUSSIA_CUMULATIVE_DEFENSE_SPEND / RUSSIA_POPULATION);
 
   // Daily average for context
@@ -237,58 +232,22 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
   }
 
   function buildDollarCostCard(): ShareCardData {
+    const homes = Math.round(totalCost / 250_000);
     return {
       category: "Missiles",
       categoryColor: "#ef4444",
-      headline: `Russia spent an estimated $${costBillions.toFixed(1)} billion on missiles aimed at Ukraine's civilians`,
+      headline: `$${costBillions.toFixed(1)} billion in missiles — enough to build the James Webb Space Telescope and still have change`,
       bigNumber: `$${costBillions.toFixed(1)}B`,
       bigNumberCaption: "estimated total cost of missiles fired at Ukraine",
-      comparisonNote: "Based on conservative Russian domestic procurement pricing per missile type. Real export/replacement costs are 3–6× higher.",
-      bars: [],
-      sourceNote: "Cost per unit: Defence Express / militarnyi.com analysis of leaked Russian MoD procurement contracts. Kalibr ~$1.5M, Kh-101 ~$2M, Shahed ~$30K.",
-    };
-  }
-
-  function buildWhatCouldBuyCard(): ShareCardData {
-    const schools = Math.round(totalCost / SCHOOL_COST_USD);
-    const hospitalBeds = Math.round(totalCost / HOSPITAL_BED_COST_USD);
-    const vaccineMillions = Math.round(totalCost / VACCINE_COST_USD / 1_000_000);
-    return {
-      category: "Missiles",
-      categoryColor: "#ef4444",
-      headline: "What Russia's missile spending could have built instead",
-      bigNumber: `$${costBillions.toFixed(1)}B`,
-      bigNumberCaption: "spent destroying Ukraine's infrastructure",
-      comparisonNote: "",
+      comparisonNote: "Based on conservative Russian domestic procurement pricing. Real replacement costs are 3–6× higher.",
       bars: [],
       bullets: [
-        `${schools.toLocaleString()} new schools (at $2M each)`,
-        `${(hospitalBeds / 1_000).toFixed(0)},000 hospital beds (at $100K each)`,
-        `${vaccineMillions.toLocaleString()} million vaccine doses (UNICEF bulk rate)`,
-        `Enough to fund Ukraine's entire pre-war education budget for ${Math.round(totalCost / 7_000_000_000)} years`,
+        `The James Webb Space Telescope — the most powerful space telescope ever built, 30 years in development — cost ~$10B. You could build it from scratch and still have $${(totalCost / 1e9 - 10).toFixed(1)}B left over.`,
+        `Two Large Hadron Colliders — the world's largest particle accelerator that discovered the Higgs boson — cost ~$4.75B each. You could build two and still have ~$${(totalCost / 1e9 - 9.5).toFixed(1)}B to spare.`,
+        `Fund the global fight against malaria for two years — the WHO estimates $5–6B/year to fund bed nets, treatments, and vaccines worldwide.`,
+        `${homes.toLocaleString()} affordable homes at $250K each — enough to house ~${Math.round(homes * 2.2 / 1000) * 1000} people and end homelessness in several major cities.`,
       ],
-      sourceNote: "School: ~$2M avg (World Bank, Eastern Europe). Hospital bed: ~$100K. Vaccines: $3/dose (UNICEF COVAX). Ukraine education budget: ~$7B/yr pre-war.",
-    };
-  }
-
-  function buildDefenseEconomicsCard(): ShareCardData {
-    return {
-      category: "Defense",
-      categoryColor: "#22c55e",
-      headline: "Shooting a Ferrari to destroy a Honda Civic — the insane asymmetry of air defense costs",
-      bigNumber: "100×",
-      bigNumberCaption: "cost disparity: a $35K drone vs $3M+ interceptor",
-      comparisonNote: "A Shahed drone costs Russia ~$35,000 to build. A NASAMS or Patriot missile to shoot it down costs $1–4 million. Kinzhal hypersonic missiles ($10M+) require multiple Patriot interceptors ($8M+). Ukraine has adapted by using heavy machine guns and electronic warfare where possible, but the financial strain is immense.",
-      bars: [
-        { label: "Patriot Interceptor", sublabel: "cost to shoot down one missile", value: 4_000_000, color: "#22c55e", isHighlight: true },
-        { label: "Shahed Drone", sublabel: "cost for Russia to launch", value: 35_000, color: "#ef4444" },
-      ],
-      bullets: [
-        "Shahed drone: ~$35K to fire → $1M–$4M to intercept",
-        "Kh-101 cruise missile: ~$1.5M → $3M–$4M Patriot interceptor",
-        "Kinzhal hypersonic: ~$10M+ → $8M+ (multiple Patriots)",
-      ],
-      sourceNote: "Defence Express, militarnyi.com, official Western procurement data. Patriot: US Army/Raytheon public pricing.",
+      sourceNote: "Missile costs: Defence Express / militarnyi.com. JWST: NASA ($10B). LHC: CERN ($4.75B). Malaria: WHO Global Malaria Programme. Housing: US avg affordable housing cost.",
     };
   }
 
@@ -296,29 +255,32 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
     return {
       category: "Defense",
       categoryColor: "#22c55e",
-      headline: `Ukraine intercepts ${efficiency.toFixed(1)}% of missiles — matching Iron Dome under far greater pressure`,
+      headline: `${efficiency.toFixed(1)}% interception against the most complex aerial threats ever faced — no system on Earth has been tested like this`,
       bigNumber: `${efficiency.toFixed(1)}%`,
       bigNumberCaption: "of all Russian missiles and drones intercepted",
-      comparisonNote: "Iron Dome operates in short bursts. Ukraine has maintained these rates under relentless, large-scale attacks for years — making it the most battle-tested air defense system in history.",
+      comparisonNote: `Iron Dome intercepts ~90% of short-range rockets in brief bursts lasting minutes. Ukraine's air defense faces cruise missiles, ballistic missiles, hypersonic weapons, and swarms of drones simultaneously — sustained over ${days.toLocaleString()} days. Maintaining ${efficiency.toFixed(1)}% against this threat diversity and volume is unprecedented. No other air defense system in history has been tested at this scale and complexity.`,
       bars: [
-        { label: "Ukraine Air Defense", sublabel: "since Feb 2022 · sustained campaign", value: Math.round(efficiency), color: "#22c55e", isHighlight: true },
-        { label: "Iron Dome (Israel)", sublabel: "IDF official average", value: IRON_DOME_RATE, color: "#60a5fa" },
+        { label: "Ukraine Air Defense", sublabel: `${days.toLocaleString()} days · cruise, ballistic, hypersonic, drones`, value: Math.round(efficiency), color: "#22c55e", isHighlight: true },
+        { label: "Iron Dome (Israel)", sublabel: "short-range rockets · brief engagements", value: IRON_DOME_RATE, color: "#60a5fa" },
       ],
-      sourceNote: "Ukraine: Kaggle/piterfm (official Ukrainian MoD data). Iron Dome: IDF official figure (~90% across all operations).",
+      sourceNote: "Ukraine: Kaggle/piterfm (official Ukrainian MoD data). Iron Dome: IDF official figure (~90%). Threat complexity is not directly comparable — Ukraine faces far more diverse and advanced weapon types.",
     };
   }
 
   function buildDurationCard(): ShareCardData {
     const moreDays = days - US_WWII_DAYS;
+    const isLonger = moreDays > 0;
     return {
       category: "Timeline",
       categoryColor: "#60a5fa",
-      headline: `${days.toLocaleString()} days — the invasion has lasted longer than US involvement in World War II`,
+      headline: isLonger
+        ? `${days.toLocaleString()} days — the invasion has lasted longer than US involvement in World War II`
+        : `${days.toLocaleString()} days and counting — approaching the length of US involvement in WWII (${US_WWII_DAYS.toLocaleString()} days)`,
       bigNumber: days.toLocaleString(),
       bigNumberCaption: "days since the full-scale invasion began (Feb 24, 2022)",
-      comparisonNote: moreDays > 0
+      comparisonNote: isLonger
         ? `That is ${moreDays} days longer than the entire US involvement in WWII (Dec 7, 1941 – Aug 15, 1945).`
-        : `US involvement in WWII lasted ${US_WWII_DAYS.toLocaleString()} days. Ukraine is rapidly approaching that milestone.`,
+        : `US involvement in WWII lasted ${US_WWII_DAYS.toLocaleString()} days — just ${US_WWII_DAYS - days} days more. At this pace, the invasion will surpass that grim milestone soon.`,
       bars: [
         { label: "Russia's invasion of Ukraine", sublabel: "Feb 24, 2022 – present", value: days, color: "#60a5fa", isHighlight: true },
         { label: "US involvement in WWII", sublabel: "Dec 7, 1941 – Aug 15, 1945", value: US_WWII_DAYS, color: "#f59e0b" },
@@ -328,18 +290,21 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
   }
 
   function buildWarEconomyCard(): ShareCardData {
+    const warSpendB = RUSSIA_CUMULATIVE_DEFENSE_SPEND / 1e9;
     return {
       category: "Economy",
       categoryColor: "#a78bfa",
-      headline: `~$${(RUSSIA_CUMULATIVE_DEFENSE_SPEND / 1e9).toFixed(0)}B spent on war — enough to build ${issEquivalent} International Space Stations`,
-      bigNumber: `$${(RUSSIA_CUMULATIVE_DEFENSE_SPEND / 1e9).toFixed(0)}B`,
+      headline: `~$${warSpendB.toFixed(0)}B spent on war — enough to end extreme world hunger for a decade`,
+      bigNumber: `$${warSpendB.toFixed(0)}B`,
       bigNumberCaption: "total Russian military spending since Feb 2022",
-      comparisonNote: `The ISS — one of the most expensive engineering projects in human history, built by a coalition of nations over a decade — cost ~$150B. Russia has spent enough on this war to build ${issEquivalent} of them. Defense spending hit $140B+ in 2024, up from $53B pre-war.`,
-      bars: [
-        { label: "Russia war spending", sublabel: "2022–2025 cumulative", value: RUSSIA_CUMULATIVE_DEFENSE_SPEND / 1e6, color: "#a78bfa", isHighlight: true },
-        { label: "International Space Station", sublabel: "total construction cost", value: ISS_COST / 1e6, color: "#60a5fa" },
+      comparisonNote: "This is 'start a new civilization' money. Instead, it was spent on destruction.",
+      bars: [],
+      bullets: [
+        `End extreme world hunger for a decade — the UN estimates $39–50B/year to end hunger and malnutrition globally. $${warSpendB.toFixed(0)}B could foot the bill for the entire planet for 10 straight years.`,
+        `Provide clean water for the world for 4–5 years — the World Bank estimates $114B/year for universal safe drinking water and sanitation. $${warSpendB.toFixed(0)}B could solve the global water crisis for half a decade.`,
+        `Build a permanent Moon colony — NASA's entire Apollo program cost ~$257B (inflation-adjusted). For $${warSpendB.toFixed(0)}B, you could fund Apollo twice, or build and sustain a permanent lunar research colony for decades.`,
       ],
-      sourceNote: "Russian defense budget: SIPRI, official Russian federal budget documents. ISS cost: NASA (~$150B).",
+      sourceNote: "Russian defense spending: SIPRI, official Russian federal budget. Hunger: UN/FAO. Water: World Bank. Apollo: NASA inflation-adjusted estimates.",
     };
   }
 
@@ -458,8 +423,10 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
       id: "duration",
       eyebrow: "Timeline",
       eyebrowColor: "#60a5fa",
-      headline: `${days.toLocaleString()} days`,
-      subtext: `Longer than US involvement in WWII (${US_WWII_DAYS.toLocaleString()} days)`,
+      headline: `${days.toLocaleString()} days and counting`,
+      subtext: days > US_WWII_DAYS
+        ? `Now longer than US involvement in WWII (${US_WWII_DAYS.toLocaleString()} days)`
+        : `Approaching US involvement in WWII (${US_WWII_DAYS.toLocaleString()} days) — just ${US_WWII_DAYS - days} days away`,
       build: buildDurationCard,
     },
     {
@@ -479,43 +446,27 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
       build: buildDesertStormCard,
     },
     {
-      id: "defenseCost",
-      eyebrow: "Defense",
-      eyebrowColor: "#22c55e",
-      headline: "Ferrari vs Honda Civic",
-      subtext: "A $35K drone requires a $3M+ Patriot to intercept — the insane asymmetry of air defense",
-      build: buildDefenseEconomicsCard,
-    },
-    {
       id: "cost",
       eyebrow: "Missiles",
       eyebrowColor: "#ef4444",
-      headline: `$${costBillions.toFixed(1)} billion in missiles`,
-      subtext: "Conservative estimated cost targeting civilian infrastructure",
+      headline: `$${costBillions.toFixed(1)}B in missiles — or a James Webb Telescope`,
+      subtext: "What Russia spent destroying Ukraine could have built humanity's greatest scientific instruments",
       build: buildDollarCostCard,
-    },
-    {
-      id: "couldBuy",
-      eyebrow: "Missiles",
-      eyebrowColor: "#ef4444",
-      headline: `${Math.round(totalCost / SCHOOL_COST_USD).toLocaleString()} schools`,
-      subtext: "What the same money could have built instead",
-      build: buildWhatCouldBuyCard,
     },
     {
       id: "ironDome",
       eyebrow: "Defense",
       eyebrowColor: "#22c55e",
-      headline: `${efficiency.toFixed(1)}% — matching Iron Dome`,
-      subtext: "The most battle-tested air defense system in history",
+      headline: `${efficiency.toFixed(1)}% against the most complex threats ever`,
+      subtext: "No air defense system in history has been tested at this scale and threat diversity",
       build: buildIronDomeCard,
     },
     {
       id: "warEconomy",
       eyebrow: "Economy",
       eyebrowColor: "#a78bfa",
-      headline: `$${(RUSSIA_CUMULATIVE_DEFENSE_SPEND / 1e9).toFixed(0)}B = ${issEquivalent} Space Stations`,
-      subtext: "Russia has spent enough on this war to build 3 International Space Stations",
+      headline: `$${(RUSSIA_CUMULATIVE_DEFENSE_SPEND / 1e9).toFixed(0)}B — could end world hunger for a decade`,
+      subtext: "Or provide clean water globally for 5 years. Or build a permanent Moon colony.",
       build: buildWarEconomyCard,
     },
     {
