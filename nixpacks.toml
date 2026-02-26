@@ -1,0 +1,14 @@
+[phases.setup]
+nixPkgs = ["python312", "nodejs_22", "nodePackages.npm"]
+
+[phases.install]
+cmds = [
+  "pip install -r requirements.txt",
+  "npm --prefix frontend ci"
+]
+
+[phases.build]
+cmds = ["npm --prefix frontend run build"]
+
+[start]
+cmd = "uvicorn backend.main:app --host 0.0.0.0 --port $PORT"
