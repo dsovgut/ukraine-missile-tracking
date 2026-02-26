@@ -78,7 +78,7 @@ export default function TimeSeriesChart({ data }: Props) {
         height: 22,
         borderColor: C.axis,
         fillerColor: "rgba(0,91,187,0.15)",
-        handleStyle: { color: C.ukBlue, borderColor: C.ukBlue },
+        handleStyle: { color: C.launched, borderColor: C.launched },
         textStyle: { color: C.label },
         dataBackground: {
           lineStyle: { color: C.axis },
