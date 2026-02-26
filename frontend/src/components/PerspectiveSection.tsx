@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import type { Stats, DailyData, MissileType } from "../types";
 import {
   SOVIET_AFGHAN_DEATHS,
@@ -43,12 +43,8 @@ interface CardDef {
 export default function PerspectiveSection({ stats, daily, missileTypes }: Props) {
   const { t } = useTranslation();
   const [activeCard, setActiveCard] = useState<ShareCardData | null>(null);
-  const [, setActiveCardId] = useState<string | null>(null);
-  const trackRef = useRef<HTMLDivElement>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(true);
-  const [activeDot, setActiveDot] = useState(0);
-  const deepLinkHandled = useRef(false);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const deepLinkHandled = useState(false);
 
   if (!stats) return null;
 
@@ -77,10 +73,64 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
   const issEquivalent = Math.round(RUSSIA_CUMULATIVE_DEFENSE_SPEND / ISS_COST);
   const costPerCitizen = Math.round(RUSSIA_CUMULATIVE_DEFENSE_SPEND / RUSSIA_POPULATION);
 
+  // Daily average for context
+  const avgPerDay = Math.round(totalLaunched / days);
+
   // Only render if we have meaningful data
   if (totalCasualties < 100 || totalLaunched < 10) return null;
 
   // ── Card builders ─────────────────────────────────────────────────────────
+
+  function buildTodayAttackCard(): ShareCardData {
+    const todayLaunched = stats!.today.launched;
+    const todayDestroyed = stats!.today.destroyed;
+    const todayEff = stats!.today.efficiency;
+    return {
+      category: "Live Data",
+      categoryColor: "#ef4444",
+      headline: todayLaunched > 0
+        ? `${todayLaunched} missiles & drones launched at Ukraine today — ${todayDestroyed} intercepted (${todayEff.toFixed(0)}%)`
+        : `No attacks reported today — but ${totalLaunched.toLocaleString()} have been fired since Feb 24, 2022`,
+      bigNumber: todayLaunched > 0 ? todayLaunched.toLocaleString() : "0",
+      bigNumberCaption: todayLaunched > 0
+        ? `missiles & drones launched today (daily avg: ~${avgPerDay})`
+        : `attacks today — daily average is ~${avgPerDay}`,
+      comparisonNote: todayLaunched > 0
+        ? `Today's attack is ${todayLaunched > avgPerDay ? `${((todayLaunched / avgPerDay) * 100 - 100).toFixed(0)}% above` : `${((1 - todayLaunched / avgPerDay) * 100).toFixed(0)}% below`} the daily average of ~${avgPerDay} missiles/drones. Total since Feb 24, 2022: ${totalLaunched.toLocaleString()}.`
+        : `The average day sees ~${avgPerDay} missiles and drones fired at Ukraine. Total since Feb 24, 2022: ${totalLaunched.toLocaleString()}.`,
+      bars: todayLaunched > 0
+        ? [
+            { label: "Launched Today", sublabel: `${todayLaunched} missiles & drones`, value: todayLaunched, color: "#ef4444", isHighlight: true },
+            { label: "Intercepted", sublabel: `${todayEff.toFixed(0)}% stopped`, value: todayDestroyed, color: "#22c55e" },
+            { label: "Daily Average", sublabel: `~${avgPerDay}/day since Feb 2022`, value: avgPerDay, color: "#60a5fa" },
+          ]
+        : [
+            { label: "All-Time Launched", sublabel: `since Feb 24, 2022`, value: totalLaunched, color: "#ef4444", isHighlight: true },
+            { label: "Daily Average", sublabel: `~${avgPerDay}/day`, value: avgPerDay, color: "#60a5fa" },
+          ],
+      sourceNote: "Data: Ukrainian Air Force official reports via Kaggle/piterfm. Updated daily.",
+    };
+  }
+
+  function buildWeekSummaryCard(): ShareCardData {
+    const weekLaunched = stats!.this_week.launched;
+    const weekDestroyed = stats!.this_week.destroyed;
+    const weekEff = stats!.this_week.efficiency;
+    return {
+      category: "Live Data",
+      categoryColor: "#ef4444",
+      headline: `${weekLaunched} missiles & drones this week — ${weekEff.toFixed(0)}% intercepted. ${totalLaunched.toLocaleString()} total since the invasion began.`,
+      bigNumber: weekLaunched.toLocaleString(),
+      bigNumberCaption: `attacks this week (${totalLaunched.toLocaleString()} all-time)`,
+      comparisonNote: `Ukraine's air defense intercepted ${weekDestroyed} of ${weekLaunched} missiles and drones this week (${weekEff.toFixed(1)}%). Since February 24, 2022, a total of ${totalLaunched.toLocaleString()} missiles and drones have been launched — averaging ~${avgPerDay} per day over ${days.toLocaleString()} days.`,
+      bars: [
+        { label: "This Week", sublabel: `${weekLaunched} launched`, value: weekLaunched, color: "#ef4444", isHighlight: true },
+        { label: "Intercepted", sublabel: `${weekEff.toFixed(0)}% stopped`, value: weekDestroyed, color: "#22c55e" },
+        { label: "All-Time Total", sublabel: `${totalLaunched.toLocaleString()} since Feb 2022`, value: totalLaunched, color: "#60a5fa" },
+      ],
+      sourceNote: "Data: Ukrainian Air Force official reports via Kaggle/piterfm. Updated daily.",
+    };
+  }
 
   function buildTotalMissilesHeroCard(): ShareCardData {
     const missileRate = Math.round(totalLaunched / days);
@@ -92,28 +142,11 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
       bigNumberCaption: `missiles & drones launched since Feb 24, 2022 (~${missileRate}/day)`,
       comparisonNote: `Of these, ${totalDestroyed.toLocaleString()} (${efficiency.toFixed(1)}%) were intercepted by Ukraine's air defense — the most battle-tested system in history. The remaining ${(totalLaunched - totalDestroyed).toLocaleString()} struck Ukrainian cities, homes, hospitals, and energy infrastructure.`,
       bars: [
-        {
-          label: "Total Launched",
-          sublabel: `${totalLaunched.toLocaleString()} missiles & drones`,
-          value: totalLaunched,
-          color: "#ef4444",
-          isHighlight: true,
-        },
-        {
-          label: "Intercepted",
-          sublabel: `${efficiency.toFixed(1)}% stopped`,
-          value: totalDestroyed,
-          color: "#22c55e",
-        },
-        {
-          label: "Got Through",
-          sublabel: "struck targets across Ukraine",
-          value: totalLaunched - totalDestroyed,
-          color: "#f59e0b",
-        },
+        { label: "Total Launched", sublabel: `${totalLaunched.toLocaleString()} missiles & drones`, value: totalLaunched, color: "#ef4444", isHighlight: true },
+        { label: "Intercepted", sublabel: `${efficiency.toFixed(1)}% stopped`, value: totalDestroyed, color: "#22c55e" },
+        { label: "Got Through", sublabel: "struck targets across Ukraine", value: totalLaunched - totalDestroyed, color: "#f59e0b" },
       ],
-      sourceNote:
-        "Data: Ukrainian Air Force official reports via Kaggle/piterfm. Updated daily.",
+      sourceNote: "Data: Ukrainian Air Force official reports via Kaggle/piterfm. Updated daily.",
     };
   }
 
@@ -124,25 +157,12 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
       headline: `~${totalPayloadKt.toFixed(1)} kilotons of explosives rained on Ukraine — nearly ${(hiroshimaFraction * 100).toFixed(0)}% of Hiroshima`,
       bigNumber: `${totalPayloadKt.toFixed(1)} kt`,
       bigNumberCaption: "estimated total explosive payload delivered to Ukraine",
-      comparisonNote:
-        `The atomic bomb dropped on Hiroshima had a yield of about ${HIROSHIMA_YIELD_KT} kilotons. Russia has delivered roughly ${(hiroshimaFraction * 100).toFixed(0)}% of that explosive power — distributed conventionally, city block by city block, day after day, over ${days.toLocaleString()} days.`,
+      comparisonNote: `The atomic bomb dropped on Hiroshima had a yield of about ${HIROSHIMA_YIELD_KT} kilotons. Russia has delivered roughly ${(hiroshimaFraction * 100).toFixed(0)}% of that explosive power — distributed conventionally, city block by city block, day after day, over ${days.toLocaleString()} days.`,
       bars: [
-        {
-          label: "Russia → Ukraine (conventional)",
-          sublabel: `${totalPayloadKt.toFixed(1)} kt over ${days.toLocaleString()} days`,
-          value: Math.round(totalPayloadKt * 1000),
-          color: "#f97316",
-          isHighlight: true,
-        },
-        {
-          label: "Hiroshima (atomic)",
-          sublabel: "single detonation, Aug 6 1945",
-          value: HIROSHIMA_YIELD_KT * 1000,
-          color: "#a78bfa",
-        },
+        { label: "Russia → Ukraine (conventional)", sublabel: `${totalPayloadKt.toFixed(1)} kt over ${days.toLocaleString()} days`, value: Math.round(totalPayloadKt * 1000), color: "#f97316", isHighlight: true },
+        { label: "Hiroshima (atomic)", sublabel: "single detonation, Aug 6 1945", value: HIROSHIMA_YIELD_KT * 1000, color: "#a78bfa" },
       ],
-      sourceNote:
-        "Estimate: avg cruise/ballistic warhead ~500 kg, Shahed ~45 kg. Hiroshima: ~15 kilotons yield. Note: conventional vs nuclear yield is not directly comparable but illustrates industrial scale.",
+      sourceNote: "Estimate: avg cruise/ballistic warhead ~500 kg, Shahed ~45 kg. Hiroshima: ~15 kilotons yield. Note: conventional vs nuclear yield is not directly comparable but illustrates industrial scale.",
     };
   }
 
@@ -154,25 +174,12 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
       headline: `Russia has already lost the equivalent of ${ratio.toFixed(1)}× the entire Soviet-Afghan War`,
       bigNumber: `${ratio.toFixed(1)}×`,
       bigNumberCaption: "Soviet-Afghan Wars worth of Russian deaths",
-      comparisonNote:
-        "The Soviet-Afghan War (1979–1989) killed ~15,000 Soviet soldiers over 10 years — and helped bring down the USSR. Russia has far exceeded that toll in Ukraine.",
+      comparisonNote: "The Soviet-Afghan War (1979–1989) killed ~15,000 Soviet soldiers over 10 years — and helped bring down the USSR. Russia has far exceeded that toll in Ukraine.",
       bars: [
-        {
-          label: "Russia in Ukraine",
-          sublabel: "since Feb 24, 2022",
-          value: totalCasualties,
-          color: "#ef4444",
-          isHighlight: true,
-        },
-        {
-          label: "Soviet-Afghan War",
-          sublabel: "1979–1989, 10 years",
-          value: SOVIET_AFGHAN_DEATHS,
-          color: "#f59e0b",
-        },
+        { label: "Russia in Ukraine", sublabel: "since Feb 24, 2022", value: totalCasualties, color: "#ef4444", isHighlight: true },
+        { label: "Soviet-Afghan War", sublabel: "1979–1989, 10 years", value: SOVIET_AFGHAN_DEATHS, color: "#f59e0b" },
       ],
-      sourceNote:
-        "Russia: Ukraine MoD daily reports / Mediazona verified count. Soviet-Afghan: official Soviet records (~14,453; ~15,000 widely cited).",
+      sourceNote: "Russia: Ukraine MoD daily reports / Mediazona verified count. Soviet-Afghan: official Soviet records (~14,453; ~15,000 widely cited).",
     };
   }
 
@@ -181,40 +188,17 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
     return {
       category: "Personnel",
       categoryColor: "#f59e0b",
-      headline:
-        "Russia has lost more soldiers than the US did in Vietnam, Iraq & Afghanistan — combined",
+      headline: "Russia has lost more soldiers than the US did in Vietnam, Iraq & Afghanistan — combined",
       bigNumber: totalCasualties.toLocaleString(),
       bigNumberCaption: "estimated Russian soldiers killed",
       comparisonNote: `The US lost ${combined.toLocaleString()} soldiers across all three post-WWII wars spanning 40+ years. Russia has surpassed that in under 4 years.`,
       bars: [
-        {
-          label: "Russia in Ukraine",
-          sublabel: "since Feb 2022",
-          value: totalCasualties,
-          color: "#ef4444",
-          isHighlight: true,
-        },
-        {
-          label: "US Vietnam War",
-          sublabel: "1955–1975 · 58,220 deaths",
-          value: VIETNAM_DEATHS,
-          color: "#f59e0b",
-        },
-        {
-          label: "US Iraq War",
-          sublabel: "2003–2011 · 4,431 deaths",
-          value: US_IRAQ_DEATHS,
-          color: "#a78bfa",
-        },
-        {
-          label: "US Afghanistan",
-          sublabel: "2001–2021 · 2,459 deaths",
-          value: US_AFGHAN_DEATHS,
-          color: "#34d399",
-        },
+        { label: "Russia in Ukraine", sublabel: "since Feb 2022", value: totalCasualties, color: "#ef4444", isHighlight: true },
+        { label: "US Vietnam War", sublabel: "1955–1975 · 58,220 deaths", value: VIETNAM_DEATHS, color: "#f59e0b" },
+        { label: "US Iraq War", sublabel: "2003–2011 · 4,431 deaths", value: US_IRAQ_DEATHS, color: "#a78bfa" },
+        { label: "US Afghanistan", sublabel: "2001–2021 · 2,459 deaths", value: US_AFGHAN_DEATHS, color: "#34d399" },
       ],
-      sourceNote:
-        "Russia: Ukraine MoD / Mediazona. US figures: National Archives DCAS, DoD official records.",
+      sourceNote: "Russia: Ukraine MoD / Mediazona. US figures: National Archives DCAS, DoD official records.",
     };
   }
 
@@ -226,25 +210,12 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
       headline: `Russia has fired ${ratio}× more missiles at Ukraine than the US fired in the entire Gulf War`,
       bigNumber: `${ratio}×`,
       bigNumberCaption: `more than Desert Storm — which fired just ${DESERT_STORM_MISSILES} Tomahawks in 1991`,
-      comparisonNote:
-        "Operation Desert Storm was considered the most intensive precision missile campaign in modern history — until Ukraine.",
+      comparisonNote: "Operation Desert Storm was considered the most intensive precision missile campaign in modern history — until Ukraine.",
       bars: [
-        {
-          label: "Russia → Ukraine",
-          sublabel: `since Feb 2022 · ${totalLaunched.toLocaleString()} missiles`,
-          value: totalLaunched,
-          color: "#ef4444",
-          isHighlight: true,
-        },
-        {
-          label: "Desert Storm (1991)",
-          sublabel: "all cruise missiles fired",
-          value: DESERT_STORM_MISSILES,
-          color: "#60a5fa",
-        },
+        { label: "Russia → Ukraine", sublabel: `since Feb 2022 · ${totalLaunched.toLocaleString()} missiles`, value: totalLaunched, color: "#ef4444", isHighlight: true },
+        { label: "Desert Storm (1991)", sublabel: "all cruise missiles fired", value: DESERT_STORM_MISSILES, color: "#60a5fa" },
       ],
-      sourceNote:
-        "Ukraine data: Kaggle/piterfm (official Ukrainian reports). Desert Storm: US Navy records — 288 TLAMs launched.",
+      sourceNote: "Ukraine data: Kaggle/piterfm (official Ukrainian reports). Desert Storm: US Navy records — 288 TLAMs launched.",
     };
   }
 
@@ -256,25 +227,12 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
       headline: `${ratio}× the "Shock and Awe" campaign — Russia has fired ${totalLaunched.toLocaleString()} missiles vs 800 in Iraq 2003`,
       bigNumber: `${ratio}×`,
       bigNumberCaption: "more than the entire 2003 Iraq 'Shock and Awe' campaign",
-      comparisonNote:
-        "During the highly publicized 'Shock and Awe' campaign in the opening weeks of the 2003 Iraq War, the US and allies fired roughly 800 Tomahawk cruise missiles. Russia surpassed that in the first months of 2022 and has since fired more than twelve times that amount.",
+      comparisonNote: "During the highly publicized 'Shock and Awe' campaign in the opening weeks of the 2003 Iraq War, the US and allies fired roughly 800 Tomahawk cruise missiles. Russia surpassed that in the first months of 2022 and has since fired more than twelve times that amount.",
       bars: [
-        {
-          label: "Russia → Ukraine",
-          sublabel: `since Feb 2022 · ${totalLaunched.toLocaleString()} total`,
-          value: totalLaunched,
-          color: "#ef4444",
-          isHighlight: true,
-        },
-        {
-          label: "Shock & Awe (Iraq 2003)",
-          sublabel: `~${SHOCK_AND_AWE_MISSILES} Tomahawks`,
-          value: SHOCK_AND_AWE_MISSILES,
-          color: "#60a5fa",
-        },
+        { label: "Russia → Ukraine", sublabel: `since Feb 2022 · ${totalLaunched.toLocaleString()} total`, value: totalLaunched, color: "#ef4444", isHighlight: true },
+        { label: "Shock & Awe (Iraq 2003)", sublabel: `~${SHOCK_AND_AWE_MISSILES} Tomahawks`, value: SHOCK_AND_AWE_MISSILES, color: "#60a5fa" },
       ],
-      sourceNote:
-        "Ukraine: official Ukrainian Air Force reports. Iraq 2003: US DoD public records — ~800 TLAMs in opening weeks.",
+      sourceNote: "Ukraine: official Ukrainian Air Force reports. Iraq 2003: US DoD public records — ~800 TLAMs in opening weeks.",
     };
   }
 
@@ -285,17 +243,15 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
       headline: `Russia spent an estimated $${costBillions.toFixed(1)} billion on missiles aimed at Ukraine's civilians`,
       bigNumber: `$${costBillions.toFixed(1)}B`,
       bigNumberCaption: "estimated total cost of missiles fired at Ukraine",
-      comparisonNote:
-        "Based on conservative Russian domestic procurement pricing per missile type. Real export/replacement costs are 3–6× higher.",
+      comparisonNote: "Based on conservative Russian domestic procurement pricing per missile type. Real export/replacement costs are 3–6× higher.",
       bars: [],
-      sourceNote:
-        "Cost per unit: Defence Express / militarnyi.com analysis of leaked Russian MoD procurement contracts. Kalibr ~$1.5M, Kh-101 ~$2M, Shahed ~$30K.",
+      sourceNote: "Cost per unit: Defence Express / militarnyi.com analysis of leaked Russian MoD procurement contracts. Kalibr ~$1.5M, Kh-101 ~$2M, Shahed ~$30K.",
     };
   }
 
   function buildWhatCouldBuyCard(): ShareCardData {
-    const schools       = Math.round(totalCost / SCHOOL_COST_USD);
-    const hospitalBeds  = Math.round(totalCost / HOSPITAL_BED_COST_USD);
+    const schools = Math.round(totalCost / SCHOOL_COST_USD);
+    const hospitalBeds = Math.round(totalCost / HOSPITAL_BED_COST_USD);
     const vaccineMillions = Math.round(totalCost / VACCINE_COST_USD / 1_000_000);
     return {
       category: "Missiles",
@@ -311,8 +267,7 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
         `${vaccineMillions.toLocaleString()} million vaccine doses (UNICEF bulk rate)`,
         `Enough to fund Ukraine's entire pre-war education budget for ${Math.round(totalCost / 7_000_000_000)} years`,
       ],
-      sourceNote:
-        "School: ~$2M avg (World Bank, Eastern Europe). Hospital bed: ~$100K. Vaccines: $3/dose (UNICEF COVAX). Ukraine education budget: ~$7B/yr pre-war.",
+      sourceNote: "School: ~$2M avg (World Bank, Eastern Europe). Hospital bed: ~$100K. Vaccines: $3/dose (UNICEF COVAX). Ukraine education budget: ~$7B/yr pre-war.",
     };
   }
 
@@ -323,30 +278,17 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
       headline: "Shooting a Ferrari to destroy a Honda Civic — the insane asymmetry of air defense costs",
       bigNumber: "100×",
       bigNumberCaption: "cost disparity: a $35K drone vs $3M+ interceptor",
-      comparisonNote:
-        "A Shahed drone costs Russia ~$35,000 to build. A NASAMS or Patriot missile to shoot it down costs $1–4 million. Kinzhal hypersonic missiles ($10M+) require multiple Patriot interceptors ($8M+). Ukraine has adapted by using heavy machine guns and electronic warfare where possible, but the financial strain is immense.",
+      comparisonNote: "A Shahed drone costs Russia ~$35,000 to build. A NASAMS or Patriot missile to shoot it down costs $1–4 million. Kinzhal hypersonic missiles ($10M+) require multiple Patriot interceptors ($8M+). Ukraine has adapted by using heavy machine guns and electronic warfare where possible, but the financial strain is immense.",
       bars: [
-        {
-          label: "Patriot Interceptor",
-          sublabel: "cost to shoot down one missile",
-          value: 4_000_000,
-          color: "#22c55e",
-          isHighlight: true,
-        },
-        {
-          label: "Shahed Drone",
-          sublabel: "cost for Russia to launch",
-          value: 35_000,
-          color: "#ef4444",
-        },
+        { label: "Patriot Interceptor", sublabel: "cost to shoot down one missile", value: 4_000_000, color: "#22c55e", isHighlight: true },
+        { label: "Shahed Drone", sublabel: "cost for Russia to launch", value: 35_000, color: "#ef4444" },
       ],
       bullets: [
         "Shahed drone: ~$35K to fire → $1M–$4M to intercept",
         "Kh-101 cruise missile: ~$1.5M → $3M–$4M Patriot interceptor",
         "Kinzhal hypersonic: ~$10M+ → $8M+ (multiple Patriots)",
       ],
-      sourceNote:
-        "Defence Express, militarnyi.com, official Western procurement data. Patriot: US Army/Raytheon public pricing.",
+      sourceNote: "Defence Express, militarnyi.com, official Western procurement data. Patriot: US Army/Raytheon public pricing.",
     };
   }
 
@@ -357,25 +299,12 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
       headline: `Ukraine intercepts ${efficiency.toFixed(1)}% of missiles — matching Iron Dome under far greater pressure`,
       bigNumber: `${efficiency.toFixed(1)}%`,
       bigNumberCaption: "of all Russian missiles and drones intercepted",
-      comparisonNote:
-        "Iron Dome operates in short bursts. Ukraine has maintained these rates under relentless, large-scale attacks for years — making it the most battle-tested air defense system in history.",
+      comparisonNote: "Iron Dome operates in short bursts. Ukraine has maintained these rates under relentless, large-scale attacks for years — making it the most battle-tested air defense system in history.",
       bars: [
-        {
-          label: "Ukraine Air Defense",
-          sublabel: "since Feb 2022 · sustained campaign",
-          value: Math.round(efficiency),
-          color: "#22c55e",
-          isHighlight: true,
-        },
-        {
-          label: "Iron Dome (Israel)",
-          sublabel: "IDF official average",
-          value: IRON_DOME_RATE,
-          color: "#60a5fa",
-        },
+        { label: "Ukraine Air Defense", sublabel: "since Feb 2022 · sustained campaign", value: Math.round(efficiency), color: "#22c55e", isHighlight: true },
+        { label: "Iron Dome (Israel)", sublabel: "IDF official average", value: IRON_DOME_RATE, color: "#60a5fa" },
       ],
-      sourceNote:
-        "Ukraine: Kaggle/piterfm (official Ukrainian MoD data). Iron Dome: IDF official figure (~90% across all operations).",
+      sourceNote: "Ukraine: Kaggle/piterfm (official Ukrainian MoD data). Iron Dome: IDF official figure (~90% across all operations).",
     };
   }
 
@@ -387,24 +316,12 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
       headline: `${days.toLocaleString()} days — the invasion has lasted longer than US involvement in World War II`,
       bigNumber: days.toLocaleString(),
       bigNumberCaption: "days since the full-scale invasion began (Feb 24, 2022)",
-      comparisonNote:
-        moreDays > 0
-          ? `That is ${moreDays} days longer than the entire US involvement in WWII (Dec 7, 1941 – Aug 15, 1945).`
-          : `US involvement in WWII lasted ${US_WWII_DAYS.toLocaleString()} days. Ukraine is rapidly approaching that milestone.`,
+      comparisonNote: moreDays > 0
+        ? `That is ${moreDays} days longer than the entire US involvement in WWII (Dec 7, 1941 – Aug 15, 1945).`
+        : `US involvement in WWII lasted ${US_WWII_DAYS.toLocaleString()} days. Ukraine is rapidly approaching that milestone.`,
       bars: [
-        {
-          label: "Russia's invasion of Ukraine",
-          sublabel: "Feb 24, 2022 – present",
-          value: days,
-          color: "#60a5fa",
-          isHighlight: true,
-        },
-        {
-          label: "US involvement in WWII",
-          sublabel: "Dec 7, 1941 – Aug 15, 1945",
-          value: US_WWII_DAYS,
-          color: "#f59e0b",
-        },
+        { label: "Russia's invasion of Ukraine", sublabel: "Feb 24, 2022 – present", value: days, color: "#60a5fa", isHighlight: true },
+        { label: "US involvement in WWII", sublabel: "Dec 7, 1941 – Aug 15, 1945", value: US_WWII_DAYS, color: "#f59e0b" },
       ],
       sourceNote: "US WWII: Dec 7, 1941 – Aug 15, 1945 = 1,347 days. Invasion start: Feb 24, 2022.",
     };
@@ -417,25 +334,12 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
       headline: `~$${(RUSSIA_CUMULATIVE_DEFENSE_SPEND / 1e9).toFixed(0)}B spent on war — enough to build ${issEquivalent} International Space Stations`,
       bigNumber: `$${(RUSSIA_CUMULATIVE_DEFENSE_SPEND / 1e9).toFixed(0)}B`,
       bigNumberCaption: "total Russian military spending since Feb 2022",
-      comparisonNote:
-        `The ISS — one of the most expensive engineering projects in human history, built by a coalition of nations over a decade — cost ~$150B. Russia has spent enough on this war to build ${issEquivalent} of them. Defense spending hit $140B+ in 2024, up from $53B pre-war.`,
+      comparisonNote: `The ISS — one of the most expensive engineering projects in human history, built by a coalition of nations over a decade — cost ~$150B. Russia has spent enough on this war to build ${issEquivalent} of them. Defense spending hit $140B+ in 2024, up from $53B pre-war.`,
       bars: [
-        {
-          label: "Russia war spending",
-          sublabel: "2022–2025 cumulative",
-          value: RUSSIA_CUMULATIVE_DEFENSE_SPEND / 1e6,
-          color: "#a78bfa",
-          isHighlight: true,
-        },
-        {
-          label: "International Space Station",
-          sublabel: "total construction cost",
-          value: ISS_COST / 1e6,
-          color: "#60a5fa",
-        },
+        { label: "Russia war spending", sublabel: "2022–2025 cumulative", value: RUSSIA_CUMULATIVE_DEFENSE_SPEND / 1e6, color: "#a78bfa", isHighlight: true },
+        { label: "International Space Station", sublabel: "total construction cost", value: ISS_COST / 1e6, color: "#60a5fa" },
       ],
-      sourceNote:
-        "Russian defense budget: SIPRI, official Russian federal budget documents. ISS cost: NASA (~$150B).",
+      sourceNote: "Russian defense budget: SIPRI, official Russian federal budget documents. ISS cost: NASA (~$150B).",
     };
   }
 
@@ -446,25 +350,12 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
       headline: `${RUSSIA_DEFENSE_BUDGET_SHARE}% of Russia's budget goes to military — more than education, healthcare & social policy combined`,
       bigNumber: `${RUSSIA_DEFENSE_BUDGET_SHARE}%`,
       bigNumberCaption: "of the Russian federal budget on defense",
-      comparisonNote:
-        "For the first time in modern Russian history, the Kremlin is spending more on the military and security than on education, healthcare, social policy, and the national economy combined. They are literally trading the future education of their youth and health of their aging population for artillery shells.",
+      comparisonNote: "For the first time in modern Russian history, the Kremlin is spending more on the military and security than on education, healthcare, social policy, and the national economy combined. They are literally trading the future education of their youth and health of their aging population for artillery shells.",
       bars: [
-        {
-          label: "Military & Security",
-          sublabel: "32% of federal budget",
-          value: 32,
-          color: "#ef4444",
-          isHighlight: true,
-        },
-        {
-          label: "Education + Health + Social",
-          sublabel: "combined, less than defense",
-          value: 28,
-          color: "#22c55e",
-        },
+        { label: "Military & Security", sublabel: "32% of federal budget", value: 32, color: "#ef4444", isHighlight: true },
+        { label: "Education + Health + Social", sublabel: "combined, less than defense", value: 28, color: "#22c55e" },
       ],
-      sourceNote:
-        "Russian federal budget 2024–2025: official government data, Reuters/TASS reporting.",
+      sourceNote: "Russian federal budget 2024–2025: official government data, Reuters/TASS reporting.",
     };
   }
 
@@ -475,31 +366,13 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
       headline: `$1.6 trillion in lost GDP — Russia destroyed an economy the size of Spain`,
       bigNumber: "$1.6T",
       bigNumberCaption: "estimated cumulative lost GDP from war & sanctions",
-      comparisonNote:
-        "$1.6 trillion is larger than the entire GDP of countries like Spain or Australia. By starting this war, Russia essentially set fire to an entire top-20 global economy in terms of lost economic potential.",
+      comparisonNote: "$1.6 trillion is larger than the entire GDP of countries like Spain or Australia. By starting this war, Russia essentially set fire to an entire top-20 global economy in terms of lost economic potential.",
       bars: [
-        {
-          label: "Russia's lost GDP",
-          sublabel: "cumulative lost potential (2022–2025)",
-          value: 1600,
-          color: "#ef4444",
-          isHighlight: true,
-        },
-        {
-          label: "Spain's GDP",
-          sublabel: "for comparison (~$1.4T)",
-          value: 1400,
-          color: "#60a5fa",
-        },
-        {
-          label: "Australia's GDP",
-          sublabel: "for comparison (~$1.5T)",
-          value: 1500,
-          color: "#f59e0b",
-        },
+        { label: "Russia's lost GDP", sublabel: "cumulative lost potential (2022–2025)", value: 1600, color: "#ef4444", isHighlight: true },
+        { label: "Spain's GDP", sublabel: "for comparison (~$1.4T)", value: 1400, color: "#60a5fa" },
+        { label: "Australia's GDP", sublabel: "for comparison (~$1.5T)", value: 1500, color: "#f59e0b" },
       ],
-      sourceNote:
-        "Lost GDP estimates: Yale School of Management, Bloomberg Economics. GDP figures: World Bank 2024.",
+      sourceNote: "Lost GDP estimates: Yale School of Management, Bloomberg Economics. GDP figures: World Bank 2024.",
     };
   }
 
@@ -510,38 +383,48 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
       headline: `~$${costPerCitizen.toLocaleString()} spent per Russian citizen on this war — months of wages outside Moscow`,
       bigNumber: `$${costPerCitizen.toLocaleString()}`,
       bigNumberCaption: "military spending per Russian citizen (man, woman & child)",
-      comparisonNote:
-        "In a country where the average monthly salary in many regions is well under $1,000, the government has burned through months of a citizen's wages per person — prioritizing territorial expansion over poverty alleviation.",
+      comparisonNote: "In a country where the average monthly salary in many regions is well under $1,000, the government has burned through months of a citizen's wages per person — prioritizing territorial expansion over poverty alleviation.",
       bars: [
-        {
-          label: "War cost per citizen",
-          sublabel: `$${costPerCitizen.toLocaleString()} per 144M people`,
-          value: costPerCitizen,
-          color: "#ef4444",
-          isHighlight: true,
-        },
-        {
-          label: "Average monthly salary",
-          sublabel: "outside Moscow, ~$700-900",
-          value: 800,
-          color: "#22c55e",
-        },
+        { label: "War cost per citizen", sublabel: `$${costPerCitizen.toLocaleString()} per 144M people`, value: costPerCitizen, color: "#ef4444", isHighlight: true },
+        { label: "Average monthly salary", sublabel: "outside Moscow, ~$700-900", value: 800, color: "#22c55e" },
       ],
-      sourceNote:
-        "Population: 144M (Rosstat). Defense spending: ~$500B (SIPRI/official). Salary: Rosstat regional avg.",
+      sourceNote: "Population: 144M (Rosstat). Defense spending: ~$500B (SIPRI/official). Salary: Rosstat regional avg.",
     };
   }
 
   // ── Card grid definitions ─────────────────────────────────────────────────
 
   const cards: CardDef[] = [
-    // Hero cards (first two — bigger)
+    // Live data cards (first two — always fresh)
+    {
+      id: "todayAttack",
+      eyebrow: "Live Data",
+      eyebrowColor: "#ef4444",
+      headline: stats.today.launched > 0
+        ? `${stats.today.launched} attacks today`
+        : "No attacks reported today",
+      subtext: stats.today.launched > 0
+        ? `${stats.today.destroyed} intercepted (${stats.today.efficiency.toFixed(0)}% stopped). Updated from Ukrainian Air Force reports.`
+        : `Daily average: ~${avgPerDay} missiles & drones. ${totalLaunched.toLocaleString()} total since Feb 24, 2022.`,
+      build: buildTodayAttackCard,
+      isHero: true,
+    },
+    {
+      id: "weekSummary",
+      eyebrow: "Live Data",
+      eyebrowColor: "#ef4444",
+      headline: `${stats.this_week.launched} attacks this week`,
+      subtext: `${stats.this_week.efficiency.toFixed(0)}% interception rate. ${totalLaunched.toLocaleString()} total since Feb 24, 2022.`,
+      build: buildWeekSummaryCard,
+      isHero: true,
+    },
+    // Hero cards
     {
       id: "totalMissiles",
       eyebrow: "Overview",
       eyebrowColor: "#ef4444",
       headline: `${totalLaunched.toLocaleString()} missiles & drones`,
-      subtext: `The most intense aerial bombardment of the 21st century. ${efficiency.toFixed(1)}% intercepted. ~${Math.round(totalLaunched / days)}/day average.`,
+      subtext: `The most intense aerial bombardment of the 21st century. ${efficiency.toFixed(1)}% intercepted. ~${avgPerDay}/day average.`,
       build: buildTotalMissilesHeroCard,
       isHero: true,
     },
@@ -661,183 +544,230 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
     },
   ];
 
-  // ── Carousel logic ──────────────────────────────────────────────────────
+  // ── Derive unique categories for filter pills ─────────────────────────────
+  const categories = useMemo(() => {
+    const seen = new Set<string>();
+    return cards.reduce<{ name: string; color: string }[]>((acc, c) => {
+      if (!seen.has(c.eyebrow)) {
+        seen.add(c.eyebrow);
+        acc.push({ name: c.eyebrow, color: c.eyebrowColor });
+      }
+      return acc;
+    }, []);
+  }, [cards.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Group cards into pages for dots (approx)
-  const totalCards = cards.length;
+  // ── Navigation ────────────────────────────────────────────────────────────
 
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+
+  const filteredCards = activeCategory
+    ? cards.filter((c) => c.eyebrow === activeCategory)
+    : cards;
+
+  // Clamp currentIndex when filteredCards changes
+  const safeIndex = Math.min(currentIndex, filteredCards.length - 1);
+  const currentCard = filteredCards[safeIndex];
+
+  const goPrev = useCallback(() => {
+    setCurrentIndex((i) => Math.max(0, i - 1));
+  }, []);
+
+  const goNext = useCallback(() => {
+    setCurrentIndex((i) => Math.min(i + 1, filteredCards.length - 1));
+  }, [filteredCards.length]);
+
+  // Keyboard navigation
   /* eslint-disable react-hooks/rules-of-hooks */
-  const updateScrollState = useCallback(() => {
-    const el = trackRef.current;
-    if (!el) return;
-    const scrollLeft = el.scrollLeft;
-    const maxScroll = el.scrollWidth - el.clientWidth;
-    setCanScrollLeft(scrollLeft > 10);
-    setCanScrollRight(scrollLeft < maxScroll - 10);
-
-    // Calculate active dot (approximate card index)
-    if (el.children.length > 0) {
-      const firstChild = el.children[0] as HTMLElement;
-      const cardWidth = firstChild.offsetWidth + 16; // gap
-      const idx = Math.round(scrollLeft / cardWidth);
-      setActiveDot(Math.min(idx, totalCards - 1));
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      if (activeCard) return; // don't navigate while modal is open
+      if (e.key === "ArrowLeft") { e.preventDefault(); goPrev(); }
+      if (e.key === "ArrowRight") { e.preventDefault(); goNext(); }
     }
-  }, [totalCards]);
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [goPrev, goNext, activeCard]);
 
+  // Deep-link
   useEffect(() => {
-    const el = trackRef.current;
-    if (!el) return;
-    updateScrollState();
-    el.addEventListener("scroll", updateScrollState, { passive: true });
-    window.addEventListener("resize", updateScrollState);
-    return () => {
-      el.removeEventListener("scroll", updateScrollState);
-      window.removeEventListener("resize", updateScrollState);
-    };
-  }, [updateScrollState]);
-  // Deep-link: auto-open card from URL hash (e.g. #card=explosiveYield)
-  useEffect(() => {
-    if (deepLinkHandled.current) return;
+    if (deepLinkHandled[0]) return;
     const hash = window.location.hash;
     const match = hash.match(/^#card=(.+)$/);
     if (match) {
-      const card = cards.find((c) => c.id === match[1]);
-      if (card) {
-        deepLinkHandled.current = true;
-        setActiveCardId(card.id);
-        setActiveCard(card.build());
+      const idx = cards.findIndex((c) => c.id === match[1]);
+      if (idx >= 0) {
+        deepLinkHandled[1](true);
+        setCurrentIndex(idx);
+        setActiveCard(cards[idx].build());
       }
     }
-  }, [cards]);
+  }, [cards.length]); // eslint-disable-line react-hooks/exhaustive-deps
   /* eslint-enable react-hooks/rules-of-hooks */
 
   function openCard(card: CardDef) {
-    setActiveCardId(card.id);
     setActiveCard(card.build());
     window.history.replaceState(null, "", `#card=${card.id}`);
   }
 
   function closeCard() {
-    setActiveCardId(null);
     setActiveCard(null);
     window.history.replaceState(null, "", window.location.pathname);
   }
 
-  function scrollBy(direction: "left" | "right") {
-    const el = trackRef.current;
-    if (!el) return;
-    const scrollAmount = el.clientWidth * 0.8;
-    el.scrollBy({
-      left: direction === "left" ? -scrollAmount : scrollAmount,
-      behavior: "smooth",
-    });
+  // ── Render mini bar preview ──────────────────────────────────────────────
+  function renderMiniBars(card: CardDef) {
+    const data = card.build();
+    if (!data.bars || data.bars.length === 0) return null;
+    const bars = data.bars.slice(0, 3);
+    const maxVal = Math.max(...bars.map((b) => b.value));
+    return (
+      <div className="flex flex-col gap-2 mt-4">
+        {bars.map((bar) => (
+          <div key={bar.label}>
+            <div className="flex justify-between text-[11px] mb-1">
+              <span className={bar.isHighlight ? "text-white font-semibold" : "text-brand-text"}>
+                {bar.label}
+              </span>
+              <span className="text-brand-text tabular-nums">{bar.value.toLocaleString()}</span>
+            </div>
+            <div className="h-1.5 rounded-full bg-[#1a1a1a] overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{
+                  width: `${(bar.value / maxVal) * 100}%`,
+                  background: bar.color,
+                  opacity: bar.isHighlight ? 1 : 0.5,
+                }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
   }
 
-  function scrollToDot(idx: number) {
-    const el = trackRef.current;
-    if (!el || !el.children[idx]) return;
-    const child = el.children[idx] as HTMLElement;
-    el.scrollTo({
-      left: child.offsetLeft - 16,
-      behavior: "smooth",
-    });
-  }
-
-  // Show a subset of dots (max ~8) to avoid visual clutter
-  const dotStep = totalCards > 10 ? 2 : 1;
-  const dotIndices: number[] = [];
-  for (let i = 0; i < totalCards; i += dotStep) {
-    dotIndices.push(i);
-  }
-  if (dotIndices[dotIndices.length - 1] !== totalCards - 1) {
-    dotIndices.push(totalCards - 1);
-  }
+  // ── Progress bar ──────────────────────────────────────────────────────────
+  const progress = filteredCards.length > 1 ? safeIndex / (filteredCards.length - 1) : 1;
 
   return (
     <>
-      <section className="bg-brand-card border border-brand-border rounded-xl p-6 overflow-hidden">
-        <h2 className="text-xl font-bold text-white mb-1">{t("perspectiveTitle")}</h2>
-        <p className="text-brand-text text-sm mb-6">{t("perspectiveSubtitle")}</p>
+      <section className="bg-brand-card border border-brand-border rounded-xl p-6">
+        {/* Header with counter */}
+        <div className="flex items-start justify-between mb-1">
+          <h2 className="text-xl font-bold text-white">{t("perspectiveTitle")}</h2>
+          <span className="text-sm text-brand-text tabular-nums whitespace-nowrap ml-4">
+            {safeIndex + 1} / {filteredCards.length}
+          </span>
+        </div>
+        <p className="text-brand-text text-sm mb-4">{t("perspectiveSubtitle")}</p>
 
-        {/* Carousel wrapper */}
-        <div className="relative">
-          {/* Left arrow */}
-          {canScrollLeft && (
+        {/* Progress bar */}
+        <div className="h-1 rounded-full bg-[#1a1a1a] mb-5 overflow-hidden">
+          <div
+            className="h-full rounded-full bg-brand-red transition-all duration-300"
+            style={{ width: `${progress * 100}%` }}
+          />
+        </div>
+
+        {/* Category filter pills */}
+        <div className="flex flex-wrap gap-2 mb-5">
+          <button
+            onClick={() => { setActiveCategory(null); setCurrentIndex(0); }}
+            className={`px-3 py-1 text-xs font-semibold rounded-full border transition-all cursor-pointer ${
+              activeCategory === null
+                ? "bg-white/10 border-white/20 text-white"
+                : "bg-transparent border-brand-border text-brand-text hover:border-[#444] hover:text-white"
+            }`}
+          >
+            All
+          </button>
+          {categories.map((cat) => (
             <button
-              onClick={() => scrollBy("left")}
-              className="carousel-arrow carousel-arrow--left hidden sm:flex"
-              aria-label="Scroll left"
+              key={cat.name}
+              onClick={() => { setActiveCategory(activeCategory === cat.name ? null : cat.name); setCurrentIndex(0); }}
+              className={`px-3 py-1 text-xs font-semibold rounded-full border transition-all cursor-pointer ${
+                activeCategory === cat.name
+                  ? "border-white/20 text-white"
+                  : "bg-transparent border-brand-border text-brand-text hover:border-[#444] hover:text-white"
+              }`}
+              style={activeCategory === cat.name ? { background: cat.color + "22", borderColor: cat.color + "44" } : undefined}
             >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d="M10 3L5 8L10 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
+              {cat.name}
             </button>
-          )}
+          ))}
+        </div>
 
-          {/* Right arrow */}
-          {canScrollRight && (
-            <button
-              onClick={() => scrollBy("right")}
-              className="carousel-arrow carousel-arrow--right hidden sm:flex"
-              aria-label="Scroll right"
+        {/* Current card */}
+        {currentCard && (
+          <button
+            onClick={() => openCard(currentCard)}
+            className="w-full text-left bg-brand-surface border border-brand-border rounded-xl p-6 sm:p-8 hover:border-[#333] hover:bg-[#161616] transition-all group cursor-pointer"
+          >
+            {/* Eyebrow */}
+            <span
+              className="inline-block text-[10px] font-bold uppercase tracking-widest mb-3"
+              style={{ color: currentCard.eyebrowColor }}
             >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d="M6 3L11 8L6 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
-          )}
+              {currentCard.eyebrow}
+            </span>
 
-          {/* Scrollable track */}
-          <div ref={trackRef} className="carousel-track">
-            {cards.map((card) => (
+            {/* Headline */}
+            <p className="text-white font-bold text-xl sm:text-2xl leading-snug mb-3">
+              {currentCard.headline}
+            </p>
+
+            {/* Subtext */}
+            <p className="text-brand-text text-sm sm:text-base leading-relaxed mb-2">
+              {currentCard.subtext}
+            </p>
+
+            {/* Mini bar preview */}
+            {renderMiniBars(currentCard)}
+
+            {/* CTA */}
+            <p className="text-[11px] text-brand-muted mt-5 group-hover:text-[#666] transition-colors">
+              View full details &amp; share →
+            </p>
+          </button>
+        )}
+
+        {/* Navigation buttons */}
+        <div className="flex items-center justify-between mt-5">
+          <button
+            onClick={goPrev}
+            disabled={safeIndex === 0}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg border border-brand-border text-brand-text hover:border-[#444] hover:text-white transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+              <path d="M10 3L5 8L10 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            Prev
+          </button>
+
+          {/* Dot indicators */}
+          <div className="flex gap-1.5">
+            {filteredCards.map((_, i) => (
               <button
-                key={card.id}
-                onClick={() => openCard(card)}
-                className={`carousel-card ${
-                  card.isHero ? "carousel-card--hero" : "carousel-card--regular"
-                } text-left bg-brand-surface border border-brand-border rounded-xl hover:border-[#333] hover:bg-[#161616] transition-all group cursor-pointer ${
-                  card.isHero ? "p-5" : "p-4"
+                key={i}
+                onClick={() => setCurrentIndex(i)}
+                className={`w-1.5 h-1.5 rounded-full transition-all cursor-pointer ${
+                  i === safeIndex ? "bg-brand-red scale-125" : "bg-[#333] hover:bg-[#555]"
                 }`}
-              >
-                <span
-                  className="text-[10px] font-bold uppercase tracking-widest"
-                  style={{ color: card.eyebrowColor }}
-                >
-                  {card.eyebrow}
-                </span>
-                <p className={`text-white font-bold mt-1 mb-2 leading-snug ${
-                  card.isHero ? "text-base" : "text-sm"
-                }`}>
-                  {card.headline}
-                </p>
-                <p className={`text-brand-text leading-snug ${
-                  card.isHero ? "text-sm" : "text-xs"
-                }`}>
-                  {card.subtext}
-                </p>
-                <p className="text-[10px] text-brand-muted mt-3 group-hover:text-[#666] transition-colors">
-                  View &amp; Share ↗
-                </p>
-              </button>
+                aria-label={`Go to card ${i + 1}`}
+              />
             ))}
           </div>
 
-          {/* Dot indicators */}
-          <div className="carousel-dots">
-            {dotIndices.map((idx) => {
-              const isActive =
-                activeDot === idx ||
-                (dotStep > 1 && activeDot >= idx && activeDot < (dotIndices[dotIndices.indexOf(idx) + 1] ?? totalCards));
-              return (
-                <button
-                  key={idx}
-                  className={`carousel-dot ${isActive ? "carousel-dot--active" : ""}`}
-                  onClick={() => scrollToDot(idx)}
-                  aria-label={`Go to card ${idx + 1}`}
-                />
-              );
-            })}
-          </div>
+          <button
+            onClick={goNext}
+            disabled={safeIndex >= filteredCards.length - 1}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg border border-brand-border text-brand-text hover:border-[#444] hover:text-white transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            Next
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+              <path d="M6 3L11 8L6 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
         </div>
       </section>
 

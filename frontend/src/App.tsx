@@ -4,6 +4,7 @@ import RecordCallout from "./components/RecordCallout";
 import PerspectiveSection from "./components/PerspectiveSection";
 import MilestoneBanner from "./components/MilestoneBanner";
 import CountryCompare from "./components/CountryCompare";
+import LiveCounter from "./components/LiveCounter";
 import { useDailyData, useStats, useWeeklyData, useMissileTypes, useByModel } from "./hooks/useData";
 import { LanguageProvider, useTranslation } from "./i18n";
 
@@ -53,11 +54,12 @@ function AppInner() {
           <Spinner />
         ) : (
           <Suspense fallback={<ChartSpinner />}>
+            <LiveCounter stats={stats} missileTypes={missileTypes} />
             <MilestoneBanner stats={stats} totalCasualties={totalCasualties} />
             <RecordCallout daily={daily} variant="attacks" />
             <PersonnelLosses data={weekly} />
             <PerspectiveSection stats={stats} daily={daily} missileTypes={missileTypes} />
-            <CountryCompare stats={stats} missileTypes={missileTypes} />
+            <CountryCompare stats={stats} />
             <TimeSeriesChart data={daily} />
             <RecordCallout daily={daily} variant="defense" />
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
