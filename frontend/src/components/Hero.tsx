@@ -9,28 +9,6 @@ function fmt(n: number) {
   return n.toLocaleString("en-US");
 }
 
-function KpiCard({
-  label,
-  value,
-  sub,
-  color = "white",
-}: {
-  label: string;
-  value: string | number;
-  sub?: string;
-  color?: string;
-}) {
-  return (
-    <div className="bg-white/5 border border-white/10 rounded-xl px-6 py-4 flex flex-col gap-1">
-      <span className="text-xs font-semibold uppercase tracking-widest text-gray-400">{label}</span>
-      <span className={`text-3xl font-black leading-none`} style={{ color }}>
-        {value}
-      </span>
-      {sub && <span className="text-sm text-gray-400 font-medium">{sub}</span>}
-    </div>
-  );
-}
-
 function PeriodBlock({
   label,
   launched,
@@ -43,43 +21,29 @@ function PeriodBlock({
   efficiency: number;
 }) {
   return (
-    <div className="text-center">
-      <div className="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-1">{label}</div>
-      <div className="text-lg font-bold text-white">
-        <span className="text-red-400">{fmt(launched)}</span>
-        <span className="text-gray-500 mx-1">/</span>
-        <span className="text-green-400">{fmt(destroyed)}</span>
-      </div>
-      <div className="text-sm text-blue-400 font-semibold">{efficiency}% intercepted</div>
+    <div>
+      <div className="text-xs font-semibold uppercase tracking-widest text-[#555] mb-3">{label}</div>
+      <div className="text-2xl font-black text-white tabular-nums leading-none">{fmt(launched)}</div>
+      <div className="text-xs text-[#555] mt-1 mb-2">launched</div>
+      <div className="text-sm font-semibold text-[#737373] tabular-nums">{fmt(destroyed)} intercepted</div>
+      <div className="text-xs font-bold text-[#ef4444] mt-1">{efficiency}% stopped</div>
     </div>
   );
 }
 
 export default function Hero({ stats, loading }: Props) {
   return (
-    <header className="relative overflow-hidden bg-gradient-to-b from-gray-900 to-brand-bg border-b border-brand-border">
-      {/* Subtle background pattern */}
-      <div
-        className="absolute inset-0 opacity-5"
-        style={{
-          backgroundImage:
-            "radial-gradient(circle at 20% 50%, #005BBB 0%, transparent 50%), radial-gradient(circle at 80% 50%, #FFD700 0%, transparent 50%)",
-        }}
-      />
-
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <header className="border-b border-[#1a1a1a] bg-[#0a0a0a]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Title */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <span className="text-2xl">🇺🇦</span>
-            <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white">
-              Ukraine Missile Tracker
-            </h1>
-          </div>
-          <p className="text-gray-400 text-sm sm:text-base">
-            Tracking Russian missile and drone attacks on Ukraine
+        <div className="mb-10">
+          <h1 className="text-xs font-semibold uppercase tracking-[0.25em] text-[#555] mb-2">
+            Ukraine Missile Tracker
+          </h1>
+          <p className="text-[#333] text-xs">
+            Documenting Russian missile and drone attacks on Ukraine
             {stats?.all_time && (
-              <span className="ml-1 text-gray-500">
+              <span className="ml-1">
                 · {stats.all_time.first_date} — {stats.all_time.last_date}
               </span>
             )}
@@ -87,70 +51,79 @@ export default function Hero({ stats, loading }: Props) {
         </div>
 
         {loading || !stats ? (
-          <div className="animate-pulse grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-24 rounded-xl bg-white/5" />
-            ))}
+          <div className="animate-pulse space-y-6">
+            <div className="h-24 w-48 rounded bg-white/5" />
+            <div className="h-4 w-64 rounded bg-white/5" />
+            <div className="h-px w-full bg-white/5 mt-8" />
+            <div className="grid grid-cols-3 gap-8">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="h-20 rounded bg-white/5" />
+              ))}
+            </div>
           </div>
         ) : (
           <>
-            {/* Latest attack KPIs */}
-            <div className="mb-2">
-              <span className="text-xs font-semibold uppercase tracking-widest text-ukraine-yellow">
-                Most recent — {stats.today.date}
-              </span>
+            {/* Date label */}
+            <div className="mb-5 text-xs font-semibold uppercase tracking-widest text-[#444]">
+              Most recent attack · {stats.today.date}
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-              <KpiCard
-                label="Missiles Launched"
-                value={fmt(stats.today.launched)}
-                sub="that day"
-                color="#ef4444"
-              />
-              <KpiCard
-                label="Intercepted"
-                value={fmt(stats.today.destroyed)}
-                sub="that day"
-                color="#22c55e"
-              />
-              <KpiCard
-                label="Interception Rate"
-                value={`${stats.today.efficiency}%`}
-                sub="that day"
-                color="#60a5fa"
-              />
-              <KpiCard
-                label="Days Tracked"
-                value={fmt(stats.all_time.days)}
-                sub={`since ${stats.all_time.first_date}`}
-                color="#FFD700"
-              />
+
+            {/* Hero stat block */}
+            <div className="flex flex-col sm:flex-row sm:items-end gap-6 sm:gap-12 mb-12">
+              {/* Primary: Missiles Launched */}
+              <div>
+                <div
+                  className="text-[72px] sm:text-[96px] font-black leading-none tabular-nums"
+                  style={{ color: "#ef4444", letterSpacing: "-0.03em" }}
+                >
+                  {fmt(stats.today.launched)}
+                </div>
+                <div className="text-xs font-semibold uppercase tracking-[0.25em] text-[#555] mt-3">
+                  Missiles Launched
+                </div>
+              </div>
+
+              {/* Secondary stats */}
+              <div className="flex flex-row sm:flex-col gap-8 sm:gap-5 sm:pb-2">
+                <div>
+                  <div className="text-3xl font-black text-[#e5e5e5] tabular-nums leading-none">
+                    {fmt(stats.today.destroyed)}
+                  </div>
+                  <div className="text-xs font-semibold uppercase tracking-[0.2em] text-[#555] mt-1">
+                    Intercepted
+                  </div>
+                </div>
+                <div>
+                  <div className="text-3xl font-black text-[#737373] tabular-nums leading-none">
+                    {stats.today.efficiency}%
+                  </div>
+                  <div className="text-xs font-semibold uppercase tracking-[0.2em] text-[#555] mt-1">
+                    Stopped
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Period summaries */}
-            <div className="border-t border-white/10 pt-6 grid grid-cols-3 gap-4 divide-x divide-white/10">
+            <div className="border-t border-[#1a1a1a] pt-8 grid grid-cols-3 gap-8">
               <PeriodBlock
                 label="This Week"
                 launched={stats.this_week.launched}
                 destroyed={stats.this_week.destroyed}
                 efficiency={stats.this_week.efficiency}
               />
-              <div className="pl-4">
-                <PeriodBlock
-                  label="This Month"
-                  launched={stats.this_month.launched}
-                  destroyed={stats.this_month.destroyed}
-                  efficiency={stats.this_month.efficiency}
-                />
-              </div>
-              <div className="pl-4">
-                <PeriodBlock
-                  label="All Time"
-                  launched={stats.all_time.launched}
-                  destroyed={stats.all_time.destroyed}
-                  efficiency={stats.all_time.efficiency}
-                />
-              </div>
+              <PeriodBlock
+                label="This Month"
+                launched={stats.this_month.launched}
+                destroyed={stats.this_month.destroyed}
+                efficiency={stats.this_month.efficiency}
+              />
+              <PeriodBlock
+                label="All Time"
+                launched={stats.all_time.launched}
+                destroyed={stats.all_time.destroyed}
+                efficiency={stats.all_time.efficiency}
+              />
             </div>
           </>
         )}

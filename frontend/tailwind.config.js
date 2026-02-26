@@ -4,16 +4,15 @@ export default {
   theme: {
     extend: {
       colors: {
-        ukraine: {
-          blue: "#005BBB",
-          yellow: "#FFD700",
-        },
         brand: {
-          bg: "#0a0f1a",
-          card: "#111827",
-          border: "#1e293b",
-          muted: "#334155",
-          text: "#94a3b8",
+          bg: "#0a0a0a",
+          surface: "#111111",
+          card: "#161616",
+          border: "#222222",
+          muted: "#404040",
+          text: "#737373",
+          red: "#ef4444",
+          "red-soft": "rgba(239,68,68,0.1)",
         },
       },
       fontFamily: {
