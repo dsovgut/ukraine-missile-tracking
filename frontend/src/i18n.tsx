@@ -110,6 +110,9 @@ const translations = {
     missileInterceptedLabel: "Intercepted:",
     missileGotThroughLabel: "Got through:",
     missileEfficiencyLabel: "Efficiency:",
+    // PerspectiveSection
+    perspectiveTitle: "In Perspective",
+    perspectiveSubtitle: "How the numbers compare to other conflicts in history. Tap any card to view and share.",
     // Footer
     footerData: "Data:",
     footerUpdated: "Updated daily.",
@@ -225,6 +228,9 @@ const translations = {
     missileInterceptedLabel: "Перехоплено:",
     missileGotThroughLabel: "Досягло:",
     missileEfficiencyLabel: "Ефективність:",
+    // PerspectiveSection
+    perspectiveTitle: "У контексті",
+    perspectiveSubtitle: "Як ці цифри порівнюються з іншими конфліктами в історії. Натисніть на картку, щоб переглянути та поділитися.",
     // Footer
     footerData: "Дані:",
     footerUpdated: "Оновлюється щодня.",

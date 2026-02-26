@@ -8,6 +8,7 @@ import WeatherScatter from "./components/WeatherScatter";
 import CumulativeChart from "./components/CumulativeChart";
 import MissileTypeExplorer from "./components/MissileTypeExplorer";
 import RecordCallout from "./components/RecordCallout";
+import PerspectiveSection from "./components/PerspectiveSection";
 import { useDailyData, useStats, useWeeklyData, useMissileTypes, useByModel } from "./hooks/useData";
 import { LanguageProvider, useTranslation } from "./i18n";
 
@@ -42,6 +43,7 @@ function AppInner() {
           <>
             <RecordCallout daily={daily} variant="attacks" />
             <PersonnelLosses data={weekly} />
+            <PerspectiveSection stats={stats} daily={daily} missileTypes={missileTypes} />
             <CumulativeChart data={daily} />
             <TimeSeriesChart data={daily} />
             <RecordCallout daily={daily} variant="defense" />
