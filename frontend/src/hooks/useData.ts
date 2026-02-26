@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { DailyData, MissileType, Stats, WeeklyData } from "../types";
 
-const API = import.meta.env.DEV ? "" : "";
+const API = (import.meta.env.VITE_API_URL as string) ?? "";
 
 async function fetchJson<T>(path: string): Promise<T> {
   const res = await fetch(`${API}${path}`);
