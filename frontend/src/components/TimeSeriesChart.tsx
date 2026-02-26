@@ -126,10 +126,7 @@ export default function TimeSeriesChart({ data }: Props) {
 
   return (
     <section className="bg-brand-card border border-brand-border rounded-xl p-6">
-      <h2 className="text-xl font-bold text-white mb-1">Attack Timeline</h2>
-      <p className="text-brand-text text-sm mb-4">
-        Daily launches (bars) with 7-day rolling averages (lines). Scroll or pinch to zoom.
-      </p>
+      <h2 className="text-xl font-bold text-white mb-4">Attack Timeline</h2>
       <ReactECharts option={option} style={{ height: 420 }} notMerge />
     </section>
   );

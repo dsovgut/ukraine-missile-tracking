@@ -104,15 +104,15 @@ export default function RecordCallout({ daily, variant }: Props) {
       {cards.map((c) => (
         <div
           key={c.label}
-          className="flex items-start gap-3 rounded-xl border border-brand-border bg-brand-card px-5 py-4"
+          className="flex items-start gap-4 rounded-xl border border-brand-border bg-brand-card px-6 py-5"
         >
-          <span className="text-xl mt-0.5">{c.icon}</span>
+          <span className="text-3xl mt-1">{c.icon}</span>
           <div>
-            <div className="text-xs font-semibold uppercase tracking-widest text-[#555] mb-1">
+            <div className="text-xs font-semibold uppercase tracking-widest text-[#555] mb-2">
               {c.label}
             </div>
-            <div className="text-lg font-black text-white leading-none tabular-nums">{c.value}</div>
-            <div className="text-xs text-[#555] mt-1">{c.detail}</div>
+            <div className="text-3xl font-black text-white leading-none tabular-nums">{c.value}</div>
+            <div className="text-sm text-[#555] mt-2">{c.detail}</div>
           </div>
         </div>
       ))}

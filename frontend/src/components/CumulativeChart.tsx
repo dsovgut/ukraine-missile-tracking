@@ -117,11 +117,7 @@ export default function CumulativeChart({ data }: Props) {
 
   return (
     <section className="bg-brand-card border border-brand-border rounded-xl p-6">
-      <h2 className="text-xl font-bold text-white mb-1">Cumulative Scale</h2>
-      <p className="text-brand-text text-sm mb-4">
-        Running total of every missile and drone fired at Ukraine — launched (red) vs intercepted (green).
-        The gap is what got through.
-      </p>
+      <h2 className="text-xl font-bold text-white mb-4">Cumulative Scale</h2>
       <ReactECharts option={option} style={{ height: 380 }} notMerge />
     </section>
   );

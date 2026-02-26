@@ -27,9 +27,11 @@ export default function App() {
 
   const chartsLoading = dailyLoading || weeklyLoading || typesLoading || byModelLoading;
 
+  const totalCasualties = daily.reduce((sum, d) => sum + (d.personnel_losses ?? 0), 0);
+
   return (
     <div className="min-h-screen bg-brand-bg font-sans">
-      <Hero stats={stats} loading={statsLoading} />
+      <Hero stats={stats} loading={statsLoading} totalCasualties={totalCasualties} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20 space-y-8 pt-8">
         {chartsLoading ? (

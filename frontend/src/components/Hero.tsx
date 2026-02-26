@@ -3,6 +3,7 @@ import type { Stats } from "../types";
 interface Props {
   stats: Stats | null;
   loading: boolean;
+  totalCasualties?: number;
 }
 
 function fmt(n: number) {
@@ -31,16 +32,16 @@ function PeriodBlock({
   );
 }
 
-export default function Hero({ stats, loading }: Props) {
+export default function Hero({ stats, loading, totalCasualties }: Props) {
   return (
     <header className="border-b border-[#1a1a1a] bg-[#0a0a0a]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Title */}
         <div className="mb-10">
-          <h1 className="text-xs font-semibold uppercase tracking-[0.25em] text-[#555] mb-2">
+          <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight mb-2">
             Ukraine Missile Tracker
           </h1>
-          <p className="text-[#333] text-xs">
+          <p className="text-[#666] text-sm">
             Documenting Russian missile and drone attacks on Ukraine
             {stats?.all_time && (
               <span className="ml-1">
@@ -135,6 +136,27 @@ export default function Hero({ stats, loading }: Props) {
                   </div>
                 </div>
               </div>
+
+              {/* Casualties */}
+              {totalCasualties != null && totalCasualties > 0 && (
+                <>
+                  <div className="hidden sm:block w-px self-stretch bg-[#1a1a1a]" />
+                  <div>
+                    <div className="text-xs font-semibold uppercase tracking-widest text-[#444] mb-3">
+                      Russian casualties
+                    </div>
+                    <div
+                      className="text-[72px] sm:text-[96px] font-black leading-none tabular-nums"
+                      style={{ color: "#f59e0b", letterSpacing: "-0.03em" }}
+                    >
+                      {fmt(totalCasualties)}
+                    </div>
+                    <div className="text-xs font-semibold uppercase tracking-[0.25em] text-[#555] mt-3">
+                      Troops Lost
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Period summaries */}
