@@ -5,7 +5,6 @@ import DefenseEfficiency from "./components/DefenseEfficiency";
 import PatternCharts from "./components/PatternCharts";
 import PersonnelLosses from "./components/PersonnelLosses";
 import WeatherScatter from "./components/WeatherScatter";
-import CumulativeChart from "./components/CumulativeChart";
 import MissileTypeExplorer from "./components/MissileTypeExplorer";
 import RecordCallout from "./components/RecordCallout";
 import PerspectiveSection from "./components/PerspectiveSection";
@@ -44,7 +43,6 @@ function AppInner() {
             <RecordCallout daily={daily} variant="attacks" />
             <PersonnelLosses data={weekly} />
             <PerspectiveSection stats={stats} daily={daily} missileTypes={missileTypes} />
-            <CumulativeChart data={daily} />
             <TimeSeriesChart data={daily} />
             <RecordCallout daily={daily} variant="defense" />
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
