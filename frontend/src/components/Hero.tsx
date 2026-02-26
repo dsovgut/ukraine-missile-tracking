@@ -1,5 +1,7 @@
+import { useEffect, useState } from "react";
 import type { Stats } from "../types";
 import { useTranslation } from "../i18n";
+import { useAnimatedCounter } from "../hooks/useAnimatedCounter";
 import LangToggle from "./LangToggle";
 
 interface Props {
@@ -37,8 +39,56 @@ function PeriodBlock({
   );
 }
 
+// ── Live invasion timer ────────────────────────────────────────────────────
+const INVASION_START = new Date("2022-02-24T05:00:00+02:00").getTime(); // Kyiv time
+
+function InvasionTicker() {
+  const { t } = useTranslation();
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const diff = now - INVASION_START;
+  const totalSeconds = Math.floor(diff / 1000);
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  return (
+    <div className="mt-6 flex items-center gap-3 flex-wrap">
+      <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#444]">
+        {t("heroLiveSince")}
+      </span>
+      <div className="flex gap-2 tabular-nums">
+        {[
+          { val: days, label: t("tickerDays") },
+          { val: hours, label: t("tickerHours") },
+          { val: minutes, label: t("tickerMin") },
+          { val: seconds, label: t("tickerSec") },
+        ].map(({ val, label }) => (
+          <div key={label} className="flex flex-col items-center">
+            <span className="text-lg sm:text-xl font-black text-[#ef4444] leading-none">
+              {String(val).padStart(label === t("tickerDays") ? 1 : 2, "0")}
+            </span>
+            <span className="text-[9px] uppercase tracking-widest text-[#444] mt-1">{label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function Hero({ stats, loading, totalCasualties }: Props) {
   const { t } = useTranslation();
+
+  // Animated counters for the big hero numbers
+  const animTodayLaunched = useAnimatedCounter(stats?.today.launched ?? 0, 1500);
+  const animTotalLaunched = useAnimatedCounter(stats?.all_time.launched ?? 0, 2500);
+  const animCasualties = useAnimatedCounter(totalCasualties ?? 0, 2500);
 
   return (
     <header className="border-b border-[#1a1a1a] bg-[#0a0a0a]">
@@ -85,7 +135,7 @@ export default function Hero({ stats, loading, totalCasualties }: Props) {
                   className="text-[72px] sm:text-[96px] font-black leading-none tabular-nums"
                   style={{ color: "#ef4444", letterSpacing: "-0.03em" }}
                 >
-                  {fmt(stats.today.launched)}
+                  {fmt(animTodayLaunched)}
                 </div>
                 <div className="text-xs font-semibold uppercase tracking-[0.25em] text-[#555] mt-3">
                   {t("heroMissilesLaunched")}
@@ -122,7 +172,7 @@ export default function Hero({ stats, loading, totalCasualties }: Props) {
                   className="text-[72px] sm:text-[96px] font-black leading-none tabular-nums"
                   style={{ color: "#e5e5e5", letterSpacing: "-0.03em" }}
                 >
-                  {fmt(stats.all_time.launched)}
+                  {fmt(animTotalLaunched)}
                 </div>
                 <div className="text-xs font-semibold uppercase tracking-[0.25em] text-[#555] mt-3">
                   {t("heroMissilesFired")}
@@ -159,7 +209,7 @@ export default function Hero({ stats, loading, totalCasualties }: Props) {
                       className="text-[72px] sm:text-[96px] font-black leading-none tabular-nums"
                       style={{ color: "#f59e0b", letterSpacing: "-0.03em" }}
                     >
-                      {fmt(totalCasualties)}
+                      {fmt(animCasualties)}
                     </div>
                     <div className="text-xs font-semibold uppercase tracking-[0.25em] text-[#555] mt-3">
                       {t("heroTroopsLost")}
@@ -169,8 +219,11 @@ export default function Hero({ stats, loading, totalCasualties }: Props) {
               )}
             </div>
 
+            {/* Live invasion ticker */}
+            <InvasionTicker />
+
             {/* Period summaries */}
-            <div className="border-t border-[#1a1a1a] pt-8 grid grid-cols-3 gap-8">
+            <div className="border-t border-[#1a1a1a] pt-8 mt-6 grid grid-cols-3 gap-8">
               <PeriodBlock
                 label={t("periodThisWeek")}
                 launched={stats.this_week.launched}

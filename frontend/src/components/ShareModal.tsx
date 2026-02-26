@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { toPng } from "html-to-image";
+import { useTranslation } from "../i18n";
 
 export interface ShareBar {
   label: string;
@@ -26,9 +27,14 @@ interface Props {
   onClose: () => void;
 }
 
+const SITE_URL = typeof window !== "undefined" ? window.location.origin : "";
+
 export default function ShareModal({ card, onClose }: Props) {
+  const { t } = useTranslation();
   const cardRef = useRef<HTMLDivElement>(null);
   const [downloading, setDownloading] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [embedCopied, setEmbedCopied] = useState(false);
 
   async function handleDownload() {
     if (!cardRef.current) return;
@@ -47,6 +53,51 @@ export default function ShareModal({ card, onClose }: Props) {
       // fallback: prompt user to screenshot
     } finally {
       setDownloading(false);
+    }
+  }
+
+  function getShareText() {
+    return `${card.headline}\n\n${card.bigNumber} — ${card.bigNumberCaption}\n\n#StandWithUkraine #UkraineMissileTracker`;
+  }
+
+  function shareTwitter() {
+    const text = encodeURIComponent(getShareText());
+    const url = encodeURIComponent(SITE_URL);
+    window.open(
+      `https://x.com/intent/tweet?text=${text}&url=${url}`,
+      "_blank",
+      "noopener,noreferrer,width=600,height=400",
+    );
+  }
+
+  function shareTelegram() {
+    const text = encodeURIComponent(getShareText());
+    const url = encodeURIComponent(SITE_URL);
+    window.open(
+      `https://t.me/share/url?url=${url}&text=${text}`,
+      "_blank",
+      "noopener,noreferrer,width=600,height=400",
+    );
+  }
+
+  async function copyLink() {
+    try {
+      await navigator.clipboard.writeText(`${SITE_URL}\n\n${getShareText()}`);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // fallback
+    }
+  }
+
+  async function copyEmbed() {
+    const embedCode = `<iframe src="${SITE_URL}" width="100%" height="600" style="border:1px solid #222;border-radius:12px;background:#0a0a0a" title="Ukraine Missile Tracker"></iframe>`;
+    try {
+      await navigator.clipboard.writeText(embedCode);
+      setEmbedCopied(true);
+      setTimeout(() => setEmbedCopied(false), 2000);
+    } catch {
+      // fallback
     }
   }
 
@@ -199,24 +250,104 @@ export default function ShareModal({ card, onClose }: Props) {
           </div>
         </div>
 
-        {/* Controls */}
-        <div className="flex gap-3 flex-shrink-0">
+        {/* ── Social share buttons ─────────────────────────────────── */}
+        <div className="flex flex-wrap gap-2 justify-center flex-shrink-0">
+          {/* Save Image */}
           <button
             onClick={handleDownload}
             disabled={downloading}
-            className="px-5 py-2.5 bg-white text-black text-sm font-bold rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 cursor-pointer"
+            className="px-4 py-2 bg-white text-black text-sm font-bold rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 cursor-pointer"
           >
-            {downloading ? "Saving…" : "⬇ Save Image"}
+            {downloading ? t("shareSaving") : `\u2B07 ${t("shareSaveImage")}`}
           </button>
+
+          {/* X/Twitter */}
+          <button
+            onClick={shareTwitter}
+            className="px-4 py-2 bg-[#000] text-white text-sm font-semibold rounded-lg hover:bg-[#1a1a1a] transition-colors border border-[#333] cursor-pointer flex items-center gap-1.5"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+            </svg>
+            {t("shareTwitter")}
+          </button>
+
+          {/* Telegram */}
+          <button
+            onClick={shareTelegram}
+            className="px-4 py-2 bg-[#0088cc] text-white text-sm font-semibold rounded-lg hover:bg-[#006da3] transition-colors cursor-pointer flex items-center gap-1.5"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+            </svg>
+            {t("shareTelegram")}
+          </button>
+
+          {/* Copy Link */}
+          <button
+            onClick={copyLink}
+            className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 ${
+              copied
+                ? "bg-[#22c55e] text-white border border-[#22c55e]"
+                : "bg-[#1a1a1a] text-white border border-[#333] hover:bg-[#252525]"
+            }`}
+          >
+            {copied ? (
+              <>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                {t("shareCopied")}
+              </>
+            ) : (
+              <>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                </svg>
+                {t("shareCopyLink")}
+              </>
+            )}
+          </button>
+
+          {/* Embed */}
+          <button
+            onClick={copyEmbed}
+            className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 ${
+              embedCopied
+                ? "bg-[#22c55e] text-white border border-[#22c55e]"
+                : "bg-[#1a1a1a] text-white border border-[#333] hover:bg-[#252525]"
+            }`}
+          >
+            {embedCopied ? (
+              <>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                {t("shareEmbedCopied")}
+              </>
+            ) : (
+              <>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="16 18 22 12 16 6"/>
+                  <polyline points="8 6 2 12 8 18"/>
+                </svg>
+                {t("shareEmbed")}
+              </>
+            )}
+          </button>
+
+          {/* Close */}
           <button
             onClick={onClose}
-            className="px-5 py-2.5 bg-[#1a1a1a] text-white text-sm font-semibold rounded-lg hover:bg-[#252525] transition-colors border border-[#333] cursor-pointer"
+            className="px-4 py-2 bg-[#1a1a1a] text-white text-sm font-semibold rounded-lg hover:bg-[#252525] transition-colors border border-[#333] cursor-pointer"
           >
-            Close
+            {t("shareClose")}
           </button>
         </div>
+
         <p className="text-[#404040] text-xs flex-shrink-0">
-          Or just screenshot this card to share
+          {t("shareScreenshot")}
         </p>
       </div>
     </div>

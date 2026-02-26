@@ -43,10 +43,12 @@ interface CardDef {
 export default function PerspectiveSection({ stats, daily, missileTypes }: Props) {
   const { t } = useTranslation();
   const [activeCard, setActiveCard] = useState<ShareCardData | null>(null);
+  const [, setActiveCardId] = useState<string | null>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
   const [activeDot, setActiveDot] = useState(0);
+  const deepLinkHandled = useRef(false);
 
   if (!stats) return null;
 
@@ -693,7 +695,33 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
       window.removeEventListener("resize", updateScrollState);
     };
   }, [updateScrollState]);
+  // Deep-link: auto-open card from URL hash (e.g. #card=explosiveYield)
+  useEffect(() => {
+    if (deepLinkHandled.current) return;
+    const hash = window.location.hash;
+    const match = hash.match(/^#card=(.+)$/);
+    if (match) {
+      const card = cards.find((c) => c.id === match[1]);
+      if (card) {
+        deepLinkHandled.current = true;
+        setActiveCardId(card.id);
+        setActiveCard(card.build());
+      }
+    }
+  }, [cards]);
   /* eslint-enable react-hooks/rules-of-hooks */
+
+  function openCard(card: CardDef) {
+    setActiveCardId(card.id);
+    setActiveCard(card.build());
+    window.history.replaceState(null, "", `#card=${card.id}`);
+  }
+
+  function closeCard() {
+    setActiveCardId(null);
+    setActiveCard(null);
+    window.history.replaceState(null, "", window.location.pathname);
+  }
 
   function scrollBy(direction: "left" | "right") {
     const el = trackRef.current;
@@ -764,7 +792,7 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
             {cards.map((card) => (
               <button
                 key={card.id}
-                onClick={() => setActiveCard(card.build())}
+                onClick={() => openCard(card)}
                 className={`carousel-card ${
                   card.isHero ? "carousel-card--hero" : "carousel-card--regular"
                 } text-left bg-brand-surface border border-brand-border rounded-xl hover:border-[#333] hover:bg-[#161616] transition-all group cursor-pointer ${
@@ -814,7 +842,7 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
       </section>
 
       {activeCard && (
-        <ShareModal card={activeCard} onClose={() => setActiveCard(null)} />
+        <ShareModal card={activeCard} onClose={closeCard} />
       )}
     </>
   );

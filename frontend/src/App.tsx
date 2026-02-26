@@ -1,20 +1,33 @@
+import { lazy, Suspense } from "react";
 import Hero from "./components/Hero";
-import TimeSeriesChart from "./components/TimeSeriesChart";
-import WeeklyBarsChart from "./components/WeeklyBarsChart";
-import DefenseEfficiency from "./components/DefenseEfficiency";
-import PatternCharts from "./components/PatternCharts";
-import PersonnelLosses from "./components/PersonnelLosses";
-import WeatherScatter from "./components/WeatherScatter";
-import MissileTypeExplorer from "./components/MissileTypeExplorer";
 import RecordCallout from "./components/RecordCallout";
 import PerspectiveSection from "./components/PerspectiveSection";
+import MilestoneBanner from "./components/MilestoneBanner";
+import CountryCompare from "./components/CountryCompare";
 import { useDailyData, useStats, useWeeklyData, useMissileTypes, useByModel } from "./hooks/useData";
 import { LanguageProvider, useTranslation } from "./i18n";
+
+// Lazy-load heavy chart components (all depend on ECharts ~420KB)
+const TimeSeriesChart = lazy(() => import("./components/TimeSeriesChart"));
+const WeeklyBarsChart = lazy(() => import("./components/WeeklyBarsChart"));
+const DefenseEfficiency = lazy(() => import("./components/DefenseEfficiency"));
+const PatternCharts = lazy(() => import("./components/PatternCharts"));
+const PersonnelLosses = lazy(() => import("./components/PersonnelLosses"));
+const WeatherScatter = lazy(() => import("./components/WeatherScatter"));
+const MissileTypeExplorer = lazy(() => import("./components/MissileTypeExplorer"));
 
 function Spinner() {
   return (
     <div className="flex items-center justify-center py-24">
       <div className="w-8 h-8 rounded-full border border-brand-red border-t-transparent animate-spin" />
+    </div>
+  );
+}
+
+function ChartSpinner() {
+  return (
+    <div className="flex items-center justify-center py-12">
+      <div className="w-6 h-6 rounded-full border border-brand-border border-t-brand-red animate-spin" />
     </div>
   );
 }
@@ -29,7 +42,7 @@ function AppInner() {
 
   const chartsLoading = dailyLoading || weeklyLoading || typesLoading || byModelLoading;
 
-  const totalCasualties = daily.reduce((sum, d) => sum + (d.personnel_losses ?? 0), 0);
+  const totalCasualties = daily.reduce((sum: number, d) => sum + (d.personnel_losses ?? 0), 0);
 
   return (
     <div className="min-h-screen bg-brand-bg font-sans">
@@ -39,10 +52,12 @@ function AppInner() {
         {chartsLoading ? (
           <Spinner />
         ) : (
-          <>
+          <Suspense fallback={<ChartSpinner />}>
+            <MilestoneBanner stats={stats} totalCasualties={totalCasualties} />
             <RecordCallout daily={daily} variant="attacks" />
             <PersonnelLosses data={weekly} />
             <PerspectiveSection stats={stats} daily={daily} missileTypes={missileTypes} />
+            <CountryCompare stats={stats} missileTypes={missileTypes} />
             <TimeSeriesChart data={daily} />
             <RecordCallout daily={daily} variant="defense" />
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
@@ -52,7 +67,7 @@ function AppInner() {
             <PatternCharts data={daily} />
             <MissileTypeExplorer types={missileTypes} byModel={byModel} />
             <WeatherScatter data={daily} />
-          </>
+          </Suspense>
         )}
       </main>
 
