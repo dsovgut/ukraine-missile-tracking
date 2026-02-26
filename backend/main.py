@@ -9,6 +9,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .database import init_db
 from .data_sync import sync_data
+from .prediction import train_model
 from .scheduler import start_scheduler, stop_scheduler
 from .routes import router
 
@@ -23,6 +24,7 @@ async def lifespan(app: FastAPI):
     logger.info("Starting up Ukraine Missile Tracker…")
     init_db()
     sync_data()
+    train_model()
     start_scheduler()
     yield
     stop_scheduler()

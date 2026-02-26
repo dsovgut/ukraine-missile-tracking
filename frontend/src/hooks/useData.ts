@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { ByModelData, DailyData, MissileType, Stats, WeeklyData } from "../types";
+import type { ByModelData, DailyData, MissileType, PredictionData, Stats, WeeklyData } from "../types";
 
 const API = (import.meta.env.VITE_API_URL as string) ?? "";
 
@@ -58,6 +58,17 @@ export function useByModel() {
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     fetchJson<ByModelData[]>("/api/by-model")
+      .then(setData)
+      .finally(() => setLoading(false));
+  }, []);
+  return { data, loading };
+}
+
+export function usePredictions() {
+  const [data, setData] = useState<PredictionData | null>(null);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    fetchJson<PredictionData>("/api/predictions")
       .then(setData)
       .finally(() => setLoading(false));
   }, []);

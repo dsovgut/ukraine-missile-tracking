@@ -6,12 +6,18 @@ logger = logging.getLogger(__name__)
 _scheduler = BackgroundScheduler()
 
 
-def start_scheduler():
+def _sync_and_retrain():
     from .data_sync import sync_data
+    from .prediction import train_model
 
-    _scheduler.add_job(sync_data, CronTrigger(hour=6, minute=0), id="daily_sync", replace_existing=True)
+    sync_data()
+    train_model()
+
+
+def start_scheduler():
+    _scheduler.add_job(_sync_and_retrain, CronTrigger(hour=6, minute=0), id="daily_sync", replace_existing=True)
     _scheduler.start()
-    logger.info("Scheduler started — daily sync at 06:00 UTC")
+    logger.info("Scheduler started — daily sync + model retrain at 06:00 UTC")
 
 
 def stop_scheduler():

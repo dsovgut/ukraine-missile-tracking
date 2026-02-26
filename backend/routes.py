@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from .database import get_db
 from .models import DailyAttack, PersonnelLoss, WeatherData
+from .prediction import get_predictions
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -161,6 +162,13 @@ def get_stats(db: Session = Depends(get_db)) -> dict:
             "last_date": str(latest.date()),
         },
     }
+
+
+@router.get("/predictions")
+def predictions(days: int = 14) -> dict:
+    """Return Elastic Net forecast for the next *days* days."""
+    days = max(1, min(days, 30))
+    return get_predictions(days)
 
 
 @router.get("/by-model")

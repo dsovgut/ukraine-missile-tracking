@@ -51,3 +51,29 @@ export interface ByModelData {
   launched: number;
   destroyed: number;
 }
+
+export interface PredictionPoint {
+  date: string;
+  predicted_launched: number;
+}
+
+export interface PredictionModelInfo {
+  name: string;
+  alpha: number;
+  l1_ratio: number;
+  r2: number;
+  features_used: number;
+}
+
+export interface PredictionRecent {
+  date: string;
+  launched: number;
+  destroyed: number;
+}
+
+export interface PredictionData {
+  status: string;
+  model_info?: PredictionModelInfo;
+  forecast: PredictionPoint[];
+  recent: PredictionRecent[];
+}

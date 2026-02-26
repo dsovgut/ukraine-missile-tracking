@@ -8,7 +8,8 @@ import WeatherScatter from "./components/WeatherScatter";
 import CumulativeChart from "./components/CumulativeChart";
 import MissileTypeExplorer from "./components/MissileTypeExplorer";
 import RecordCallout from "./components/RecordCallout";
-import { useDailyData, useStats, useWeeklyData, useMissileTypes, useByModel } from "./hooks/useData";
+import PredictionChart from "./components/PredictionChart";
+import { useDailyData, useStats, useWeeklyData, useMissileTypes, useByModel, usePredictions } from "./hooks/useData";
 
 function Spinner() {
   return (
@@ -24,6 +25,7 @@ export default function App() {
   const { data: weekly, loading: weeklyLoading } = useWeeklyData();
   const { data: missileTypes, loading: typesLoading } = useMissileTypes();
   const { data: byModel, loading: byModelLoading } = useByModel();
+  const { data: predictions } = usePredictions();
 
   const chartsLoading = dailyLoading || weeklyLoading || typesLoading || byModelLoading;
 
@@ -44,6 +46,7 @@ export default function App() {
             <PersonnelLosses data={weekly} />
             <CumulativeChart data={daily} />
             <TimeSeriesChart data={daily} />
+            <PredictionChart data={predictions} />
 
             {/* Record callout — defense records */}
             <RecordCallout daily={daily} variant="defense" />
