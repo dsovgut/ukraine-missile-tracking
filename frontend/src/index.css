@@ -33,3 +33,116 @@ body {
 html {
   scroll-behavior: smooth;
 }
+
+/* ── Carousel ────────────────────────────────────────────── */
+.carousel-track {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  padding-bottom: 8px;
+}
+
+.carousel-track::-webkit-scrollbar {
+  height: 0;
+  display: none;
+}
+
+.carousel-track {
+  scrollbar-width: none;
+}
+
+.carousel-card {
+  scroll-snap-align: start;
+  flex-shrink: 0;
+}
+
+/* Hero card (first cards) — wider */
+.carousel-card--hero {
+  width: calc(100vw - 64px);
+  max-width: 400px;
+}
+
+/* Regular cards */
+.carousel-card--regular {
+  width: calc(100vw - 64px);
+  max-width: 280px;
+}
+
+/* On wider screens, show more cards */
+@media (min-width: 640px) {
+  .carousel-card--hero {
+    width: 400px;
+  }
+  .carousel-card--regular {
+    width: 280px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .carousel-card--hero {
+    width: 420px;
+  }
+  .carousel-card--regular {
+    width: 300px;
+  }
+}
+
+/* Carousel nav arrows */
+.carousel-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(17, 17, 17, 0.9);
+  border: 1px solid #333;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: background 0.2s, border-color 0.2s;
+  backdrop-filter: blur(8px);
+}
+
+.carousel-arrow:hover {
+  background: rgba(34, 34, 34, 0.95);
+  border-color: #555;
+}
+
+.carousel-arrow--left {
+  left: -4px;
+}
+
+.carousel-arrow--right {
+  right: -4px;
+}
+
+/* Carousel dots */
+.carousel-dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  padding-top: 12px;
+}
+
+.carousel-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #333;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.carousel-dot--active {
+  background: #ef4444;
+  transform: scale(1.3);
+}

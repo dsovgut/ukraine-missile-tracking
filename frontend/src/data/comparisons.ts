@@ -76,3 +76,29 @@ export const US_WWII_DAYS = 1_347;
 export const SCHOOL_COST_USD       = 2_000_000;
 export const HOSPITAL_BED_COST_USD =   100_000;
 export const VACCINE_COST_USD      =         3;
+
+// ─── Explosive yield comparisons ────────────────────────────────────────────
+// Average cruise/ballistic warhead: ~500 kg; Shahed drone: ~40-50 kg
+export const AVG_MISSILE_WARHEAD_KG = 500;
+export const AVG_DRONE_WARHEAD_KG   = 45;
+export const HIROSHIMA_YIELD_KT     = 15; // kilotons
+
+// ─── Historical bombardment ────────────────────────────────────────────────
+// US "Shock and Awe" 2003 Iraq War: ~800 Tomahawk cruise missiles
+export const SHOCK_AND_AWE_MISSILES = 800;
+
+// ─── Defense economics ──────────────────────────────────────────────────────
+export const DEFENSE_COST_TABLE = [
+  { weapon: "Shahed Drone",       fireCost: 35_000,     interceptCost: "1M–4M",   interceptor: "NASAMS / Patriot" },
+  { weapon: "Kh-101 Cruise",      fireCost: 1_500_000,  interceptCost: "3M–4M",   interceptor: "Patriot" },
+  { weapon: "Kinzhal Hypersonic",  fireCost: 10_000_000, interceptCost: "8M+",     interceptor: "Multiple Patriots" },
+];
+
+// ─── Russia war economy ─────────────────────────────────────────────────────
+export const RUSSIA_DEFENSE_BUDGET_PRE_WAR = 53_000_000_000;   // $53B (2021)
+export const RUSSIA_CUMULATIVE_DEFENSE_SPEND = 500_000_000_000; // ~$500B (2022-2025)
+export const ISS_COST = 150_000_000_000;                        // $150B
+export const RUSSIA_DEFENSE_BUDGET_SHARE = 32;                   // 32% of federal budget
+export const RUSSIA_LOST_GDP = 1_600_000_000_000;               // $1.6T
+export const RUSSIA_POPULATION = 144_000_000;
+export const RUSSIA_COST_PER_CITIZEN = 3_500;                   // ~$3,500

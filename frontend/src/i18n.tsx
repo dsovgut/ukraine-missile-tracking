@@ -112,7 +112,7 @@ const translations = {
     missileEfficiencyLabel: "Efficiency:",
     // PerspectiveSection
     perspectiveTitle: "In Perspective",
-    perspectiveSubtitle: "How the numbers compare to other conflicts in history. Tap any card to view and share.",
+    perspectiveSubtitle: "How the numbers compare to other conflicts in history. Swipe or scroll through the cards — tap any to view and share.",
     // Footer
     footerData: "Data:",
     footerUpdated: "Updated daily.",
@@ -230,7 +230,7 @@ const translations = {
     missileEfficiencyLabel: "Ефективність:",
     // PerspectiveSection
     perspectiveTitle: "У контексті",
-    perspectiveSubtitle: "Як ці цифри порівнюються з іншими конфліктами в історії. Натисніть на картку, щоб переглянути та поділитися.",
+    perspectiveSubtitle: "Як ці цифри порівнюються з іншими конфліктами в історії. Гортайте картки — натисніть, щоб переглянути та поділитися.",
     // Footer
     footerData: "Дані:",
     footerUpdated: "Оновлюється щодня.",
