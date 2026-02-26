@@ -1,12 +1,14 @@
 import ReactECharts from "echarts-for-react";
 import type { DailyData } from "../types";
 import { C } from "../chartTheme";
+import { useTranslation } from "../i18n";
 
 interface Props {
   data: DailyData[];
 }
 
 export default function CumulativeChart({ data }: Props) {
+  const { t } = useTranslation();
   if (!data.length) return null;
 
   const sorted = [...data].sort((a, b) => a.date.localeCompare(b.date));
@@ -27,6 +29,10 @@ export default function CumulativeChart({ data }: Props) {
     seriesGotThrough.push(cumLaunched - cumDestroyed);
   }
 
+  const totalLaunchedLabel = t("cumulativeTotalLaunched");
+  const totalInterceptedLabel = t("cumulativeTotalIntercepted");
+  const gotThroughLabel = t("cumulativeGotThrough");
+
   const option = {
     backgroundColor: C.bg,
     tooltip: {
@@ -34,19 +40,19 @@ export default function CumulativeChart({ data }: Props) {
       trigger: "axis",
       formatter: (params: { name: string; value: number; seriesName: string }[]) => {
         const date = params[0]?.name ?? "";
-        const launched = params.find((p) => p.seriesName === "Total Launched")?.value ?? 0;
-        const intercepted = params.find((p) => p.seriesName === "Total Intercepted")?.value ?? 0;
-        const gotThrough = params.find((p) => p.seriesName === "Got Through")?.value ?? 0;
+        const launched = params.find((p) => p.seriesName === totalLaunchedLabel)?.value ?? 0;
+        const intercepted = params.find((p) => p.seriesName === totalInterceptedLabel)?.value ?? 0;
+        const gotThrough = params.find((p) => p.seriesName === gotThroughLabel)?.value ?? 0;
         return `
           <div style="font-size:11px;color:#64748b;margin-bottom:4px">${date}</div>
-          <div style="margin-bottom:2px">🚀 Launched: <strong style="color:${C.launched}">${launched.toLocaleString()}</strong></div>
-          <div style="margin-bottom:2px">🛡 Intercepted: <strong style="color:${C.destroyed}">${intercepted.toLocaleString()}</strong></div>
-          <div>💥 Got through: <strong style="color:#737373">${gotThrough.toLocaleString()}</strong></div>
+          <div style="margin-bottom:2px">🚀 ${t("cumulativeLaunchedLabel")} <strong style="color:${C.launched}">${launched.toLocaleString()}</strong></div>
+          <div style="margin-bottom:2px">🛡 ${t("cumulativeInterceptedLabel")} <strong style="color:${C.destroyed}">${intercepted.toLocaleString()}</strong></div>
+          <div>💥 ${t("cumulativeGotThroughLabel")} <strong style="color:#737373">${gotThrough.toLocaleString()}</strong></div>
         `;
       },
     },
     legend: {
-      data: ["Total Launched", "Total Intercepted", "Got Through"],
+      data: [totalLaunchedLabel, totalInterceptedLabel, gotThroughLabel],
       textStyle: { color: C.label, fontSize: 11 },
       top: 4,
       right: 8,
@@ -84,7 +90,7 @@ export default function CumulativeChart({ data }: Props) {
     ],
     series: [
       {
-        name: "Got Through",
+        name: gotThroughLabel,
         type: "line",
         data: seriesGotThrough,
         showSymbol: false,
@@ -93,7 +99,7 @@ export default function CumulativeChart({ data }: Props) {
         z: 1,
       },
       {
-        name: "Total Intercepted",
+        name: totalInterceptedLabel,
         type: "line",
         data: seriesDestroyed,
         showSymbol: false,
@@ -103,7 +109,7 @@ export default function CumulativeChart({ data }: Props) {
         z: 2,
       },
       {
-        name: "Total Launched",
+        name: totalLaunchedLabel,
         type: "line",
         data: seriesLaunched,
         showSymbol: false,
@@ -117,7 +123,7 @@ export default function CumulativeChart({ data }: Props) {
 
   return (
     <section className="bg-brand-card border border-brand-border rounded-xl p-6">
-      <h2 className="text-xl font-bold text-white mb-4">Cumulative Scale</h2>
+      <h2 className="text-xl font-bold text-white mb-4">{t("cumulativeTitle")}</h2>
       <ReactECharts option={option} style={{ height: 380 }} notMerge />
     </section>
   );

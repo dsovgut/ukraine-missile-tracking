@@ -1,6 +1,7 @@
 import ReactECharts from "echarts-for-react";
 import type { DailyData } from "../types";
 import { C } from "../chartTheme";
+import { useTranslation } from "../i18n";
 
 interface Props {
   data: DailyData[];
@@ -15,6 +16,7 @@ function rollingAvg(values: number[], window: number): (number | null)[] {
 }
 
 export default function TimeSeriesChart({ data }: Props) {
+  const { t } = useTranslation();
   if (!data.length) return null;
 
   const dates = data.map((d) => d.date);
@@ -22,6 +24,11 @@ export default function TimeSeriesChart({ data }: Props) {
   const destroyed = data.map((d) => d.destroyed);
   const launchedAvg = rollingAvg(launched, 7);
   const destroyedAvg = rollingAvg(destroyed, 7);
+
+  const launchedDailyLabel = t("timeseriesLaunchedDaily");
+  const interceptedDailyLabel = t("timeseriesInterceptedDaily");
+  const launched7dLabel = t("timeseriesLaunched7d");
+  const intercepted7dLabel = t("timeseriesIntercepted7d");
 
   const option = {
     backgroundColor: C.bg,
@@ -34,8 +41,10 @@ export default function TimeSeriesChart({ data }: Props) {
         const lines = params
           .filter((p) => p.value != null)
           .map((p) => {
+            const isLaunched =
+              p.seriesName === launchedDailyLabel || p.seriesName === launched7dLabel;
             const dot = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${
-              p.seriesName.includes("Launched") ? C.launched : C.destroyed
+              isLaunched ? C.launched : C.destroyed
             };margin-right:6px;"></span>`;
             return `${dot}<span style="color:#94a3b8">${p.seriesName}:</span> <strong style="color:#f1f5f9">${p.value}</strong>`;
           })
@@ -65,7 +74,7 @@ export default function TimeSeriesChart({ data }: Props) {
     },
     yAxis: {
       type: "value",
-      name: "Missiles",
+      name: t("timeseriesMissiles"),
       nameTextStyle: { color: C.label, fontSize: 11 },
       ...C.axisStyle,
       minInterval: 1,
@@ -88,7 +97,7 @@ export default function TimeSeriesChart({ data }: Props) {
     ],
     series: [
       {
-        name: "Launched (daily)",
+        name: launchedDailyLabel,
         type: "bar",
         data: launched,
         itemStyle: { color: "rgba(239,68,68,0.45)" },
@@ -96,7 +105,7 @@ export default function TimeSeriesChart({ data }: Props) {
         z: 1,
       },
       {
-        name: "Intercepted (daily)",
+        name: interceptedDailyLabel,
         type: "bar",
         data: destroyed,
         itemStyle: { color: "rgba(34,197,94,0.45)" },
@@ -104,7 +113,7 @@ export default function TimeSeriesChart({ data }: Props) {
         z: 1,
       },
       {
-        name: "Launched (7-day avg)",
+        name: launched7dLabel,
         type: "line",
         data: launchedAvg,
         smooth: true,
@@ -113,7 +122,7 @@ export default function TimeSeriesChart({ data }: Props) {
         z: 3,
       },
       {
-        name: "Intercepted (7-day avg)",
+        name: intercepted7dLabel,
         type: "line",
         data: destroyedAvg,
         smooth: true,
@@ -126,7 +135,7 @@ export default function TimeSeriesChart({ data }: Props) {
 
   return (
     <section className="bg-brand-card border border-brand-border rounded-xl p-6">
-      <h2 className="text-xl font-bold text-white mb-4">Attack Timeline</h2>
+      <h2 className="text-xl font-bold text-white mb-4">{t("timeseriesTitle")}</h2>
       <ReactECharts option={option} style={{ height: 420 }} notMerge />
     </section>
   );

@@ -1,17 +1,22 @@
 import ReactECharts from "echarts-for-react";
 import type { WeeklyData } from "../types";
 import { C } from "../chartTheme";
+import { useTranslation } from "../i18n";
 
 interface Props {
   data: WeeklyData[];
 }
 
 export default function WeeklyBarsChart({ data }: Props) {
+  const { t } = useTranslation();
   if (!data.length) return null;
 
   const weeks = data.map((d) => d.week_start);
   const intercepted = data.map((d) => d.destroyed);
   const missed = data.map((d) => d.launched - d.destroyed);
+
+  const interceptedLabel = t("weeklyIntercepted");
+  const gotThroughLabel = t("weeklyGotThrough");
 
   const option = {
     backgroundColor: C.bg,
@@ -24,11 +29,11 @@ export default function WeeklyBarsChart({ data }: Props) {
         const row = data[weeks.indexOf(week)];
         if (!row) return "";
         return `
-          <div style="font-size:11px;color:#64748b;margin-bottom:6px">Week of ${week}</div>
-          <div style="color:#ef4444">⬆ Launched: <strong style="color:#f1f5f9">${row.launched}</strong></div>
-          <div style="color:#22c55e">🛡 Intercepted: <strong style="color:#f1f5f9">${row.destroyed}</strong></div>
-          <div style="color:#ef4444">💥 Got through: <strong style="color:#f1f5f9">${row.launched - row.destroyed}</strong></div>
-          <div style="color:#60a5fa;margin-top:4px">Rate: <strong style="color:#f1f5f9">${row.efficiency}%</strong></div>
+          <div style="font-size:11px;color:#64748b;margin-bottom:6px">${t("weeklyWeekOf")} ${week}</div>
+          <div style="color:#ef4444">⬆ ${t("weeklyLaunchedLabel")} <strong style="color:#f1f5f9">${row.launched}</strong></div>
+          <div style="color:#22c55e">🛡 ${t("weeklyInterceptedLabel")} <strong style="color:#f1f5f9">${row.destroyed}</strong></div>
+          <div style="color:#ef4444">💥 ${t("weeklyGotThroughLabel")} <strong style="color:#f1f5f9">${row.launched - row.destroyed}</strong></div>
+          <div style="color:#60a5fa;margin-top:4px">${t("weeklyRateLabel")} <strong style="color:#f1f5f9">${row.efficiency}%</strong></div>
         `;
       },
     },
@@ -51,14 +56,14 @@ export default function WeeklyBarsChart({ data }: Props) {
     },
     yAxis: {
       type: "value",
-      name: "Missiles",
+      name: t("weeklyMissiles"),
       nameTextStyle: { color: C.label, fontSize: 11 },
       ...C.axisStyle,
     },
     dataZoom: [{ type: "inside", start: 0, end: 100 }],
     series: [
       {
-        name: "Intercepted",
+        name: interceptedLabel,
         type: "bar",
         stack: "total",
         data: intercepted,
@@ -66,7 +71,7 @@ export default function WeeklyBarsChart({ data }: Props) {
         emphasis: { itemStyle: { color: "#4ade80" } },
       },
       {
-        name: "Got through",
+        name: gotThroughLabel,
         type: "bar",
         stack: "total",
         data: missed,
@@ -78,10 +83,8 @@ export default function WeeklyBarsChart({ data }: Props) {
 
   return (
     <section className="bg-brand-card border border-brand-border rounded-xl p-6">
-      <h2 className="text-xl font-bold text-white mb-1">Weekly Attack Volume</h2>
-      <p className="text-brand-text text-sm mb-4">
-        Stacked bars show how many were intercepted (green) vs reached their target (red).
-      </p>
+      <h2 className="text-xl font-bold text-white mb-1">{t("weeklyTitle")}</h2>
+      <p className="text-brand-text text-sm mb-4">{t("weeklySubtitle")}</p>
       <ReactECharts option={option} style={{ height: 360 }} notMerge />
     </section>
   );

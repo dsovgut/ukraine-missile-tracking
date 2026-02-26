@@ -9,6 +9,7 @@ import CumulativeChart from "./components/CumulativeChart";
 import MissileTypeExplorer from "./components/MissileTypeExplorer";
 import RecordCallout from "./components/RecordCallout";
 import { useDailyData, useStats, useWeeklyData, useMissileTypes, useByModel } from "./hooks/useData";
+import { LanguageProvider, useTranslation } from "./i18n";
 
 function Spinner() {
   return (
@@ -18,7 +19,8 @@ function Spinner() {
   );
 }
 
-export default function App() {
+function AppInner() {
+  const { t } = useTranslation();
   const { data: stats, loading: statsLoading } = useStats();
   const { data: daily, loading: dailyLoading } = useDailyData();
   const { data: weekly, loading: weeklyLoading } = useWeeklyData();
@@ -38,21 +40,15 @@ export default function App() {
           <Spinner />
         ) : (
           <>
-            {/* Record callout — attack records */}
             <RecordCallout daily={daily} variant="attacks" />
-
             <PersonnelLosses data={weekly} />
             <CumulativeChart data={daily} />
             <TimeSeriesChart data={daily} />
-
-            {/* Record callout — defense records */}
             <RecordCallout daily={daily} variant="defense" />
-
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
               <WeeklyBarsChart data={weekly} />
               <DefenseEfficiency data={weekly} />
             </div>
-
             <PatternCharts data={daily} />
             <MissileTypeExplorer types={missileTypes} byModel={byModel} />
             <WeatherScatter data={daily} />
@@ -62,20 +58,36 @@ export default function App() {
 
       <footer className="border-t border-brand-border py-8 text-center text-brand-text text-sm">
         <p>
-          Data:{" "}
-          <a className="text-brand-red hover:opacity-70 transition-opacity" href="https://www.kaggle.com/datasets/piterfm/massive-missile-attacks-on-ukraine" target="_blank" rel="noreferrer">
+          {t("footerData")}{" "}
+          <a
+            className="text-brand-red hover:opacity-70 transition-opacity"
+            href="https://www.kaggle.com/datasets/piterfm/massive-missile-attacks-on-ukraine"
+            target="_blank"
+            rel="noreferrer"
+          >
             Kaggle — piterfm/massive-missile-attacks-on-ukraine
           </a>{" "}
           &amp;{" "}
-          <a className="text-brand-red hover:opacity-70 transition-opacity" href="https://open-meteo.com" target="_blank" rel="noreferrer">
+          <a
+            className="text-brand-red hover:opacity-70 transition-opacity"
+            href="https://open-meteo.com"
+            target="_blank"
+            rel="noreferrer"
+          >
             Open-Meteo
           </a>
-          . Updated daily.
+          . {t("footerUpdated")}
         </p>
-        <p className="mt-1 text-xs text-brand-muted">
-          Built to document the ongoing conflict in Ukraine. #StandWithUkraine
-        </p>
+        <p className="mt-1 text-xs text-brand-muted">{t("footerBuilt")}</p>
       </footer>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <LanguageProvider>
+      <AppInner />
+    </LanguageProvider>
   );
 }

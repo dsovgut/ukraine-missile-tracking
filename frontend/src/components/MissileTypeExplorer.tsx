@@ -2,6 +2,7 @@ import { useState } from "react";
 import ReactECharts from "echarts-for-react";
 import type { ByModelData, MissileType } from "../types";
 import { C } from "../chartTheme";
+import { useTranslation } from "../i18n";
 
 interface Props {
   types: MissileType[];
@@ -35,10 +36,14 @@ function efficiencyColor(pct: number) {
 
 // Overview chart: horizontal ranked bar for all types
 function OverviewChart({ types }: { types: MissileType[] }) {
-  const sorted = [...types].sort((a, b) => a.total_launched - b.total_launched); // ascending so largest is at top
-  const models = sorted.map((t) => t.model);
-  const intercepted = sorted.map((t) => t.total_destroyed);
-  const gotThrough = sorted.map((t) => t.total_launched - t.total_destroyed);
+  const { t } = useTranslation();
+  const sorted = [...types].sort((a, b) => a.total_launched - b.total_launched);
+  const models = sorted.map((item) => item.model);
+  const intercepted = sorted.map((item) => item.total_destroyed);
+  const gotThrough = sorted.map((item) => item.total_launched - item.total_destroyed);
+
+  const interceptedLabel = t("missileIntercepted");
+  const gotThroughLabel = t("cumulativeGotThrough");
 
   const option = {
     backgroundColor: C.bg,
@@ -48,16 +53,16 @@ function OverviewChart({ types }: { types: MissileType[] }) {
       axisPointer: { type: "shadow" },
       formatter: (params: { name: string; value: number; seriesName: string }[]) => {
         const model = params[0]?.name ?? "";
-        const intp = params.find((p) => p.seriesName === "Intercepted")?.value ?? 0;
-        const got = params.find((p) => p.seriesName === "Got Through")?.value ?? 0;
+        const intp = params.find((p) => p.seriesName === interceptedLabel)?.value ?? 0;
+        const got = params.find((p) => p.seriesName === gotThroughLabel)?.value ?? 0;
         const total = intp + got;
         const pct = total > 0 ? Math.round((intp / total) * 100) : 0;
         return `
           <div style="font-weight:700;color:#e5e5e5;margin-bottom:4px">${model}</div>
-          <div style="margin-bottom:2px">🚀 Launched: <strong style="color:${C.launched}">${fmt(total)}</strong></div>
-          <div style="margin-bottom:2px">🛡 Intercepted: <strong style="color:${C.destroyed}">${fmt(intp)}</strong></div>
-          <div style="margin-bottom:2px">💥 Got through: <strong style="color:#737373">${fmt(got)}</strong></div>
-          <div>📊 Efficiency: <strong style="color:${efficiencyColor(pct)}">${pct}%</strong></div>
+          <div style="margin-bottom:2px">🚀 ${t("missileLaunchedLabel")} <strong style="color:${C.launched}">${fmt(total)}</strong></div>
+          <div style="margin-bottom:2px">🛡 ${t("missileInterceptedLabel")} <strong style="color:${C.destroyed}">${fmt(intp)}</strong></div>
+          <div style="margin-bottom:2px">💥 ${t("missileGotThroughLabel")} <strong style="color:#737373">${fmt(got)}</strong></div>
+          <div>📊 ${t("missileEfficiencyLabel")} <strong style="color:${efficiencyColor(pct)}">${pct}%</strong></div>
         `;
       },
     },
@@ -78,7 +83,7 @@ function OverviewChart({ types }: { types: MissileType[] }) {
     },
     series: [
       {
-        name: "Intercepted",
+        name: interceptedLabel,
         type: "bar",
         stack: "total",
         data: intercepted,
@@ -87,7 +92,7 @@ function OverviewChart({ types }: { types: MissileType[] }) {
         emphasis: { itemStyle: { color: "rgba(34,197,94,0.8)" } },
       },
       {
-        name: "Got Through",
+        name: gotThroughLabel,
         type: "bar",
         stack: "total",
         data: gotThrough,
@@ -100,9 +105,12 @@ function OverviewChart({ types }: { types: MissileType[] }) {
           color: C.label,
           fontSize: 10,
           formatter: (p: { dataIndex: number }) => {
-            const t = sorted[p.dataIndex];
-            const pct = t.total_launched > 0 ? Math.round((t.total_destroyed / t.total_launched) * 100) : 0;
-            return `${fmt(t.total_launched)}  ${pct}%`;
+            const item = sorted[p.dataIndex];
+            const pct =
+              item.total_launched > 0
+                ? Math.round((item.total_destroyed / item.total_launched) * 100)
+                : 0;
+            return `${fmt(item.total_launched)}  ${pct}%`;
           },
         },
       },
@@ -123,6 +131,7 @@ function TypeDetailChart({
   byModel: ByModelData[];
   typeSummary: MissileType;
 }) {
+  const { t } = useTranslation();
   const monthly = aggregateMonthly(byModel, model);
   if (!monthly.length) return <p className="text-brand-text text-sm py-8">No data available.</p>;
 
@@ -130,6 +139,10 @@ function TypeDetailChart({
   const launched = monthly.map((m) => m.launched);
   const destroyed = monthly.map((m) => m.destroyed);
   const gotThrough = monthly.map((m) => m.launched - m.destroyed);
+
+  const launchedLabel = t("missileLaunchedLabel").replace(":", "");
+  const interceptedLabel = t("missileIntercepted");
+  const gotThroughLabel = t("cumulativeGotThrough");
 
   const option = {
     backgroundColor: C.bg,
@@ -139,19 +152,19 @@ function TypeDetailChart({
       axisPointer: { type: "shadow" },
       formatter: (params: { name: string; value: number; seriesName: string }[]) => {
         const month = params[0]?.name ?? "";
-        const l = params.find((p) => p.seriesName === "Launched")?.value ?? 0;
-        const d = params.find((p) => p.seriesName === "Intercepted")?.value ?? 0;
+        const l = params.find((p) => p.seriesName === launchedLabel)?.value ?? 0;
+        const d = params.find((p) => p.seriesName === interceptedLabel)?.value ?? 0;
         const pct = l > 0 ? Math.round((d / l) * 100) : 0;
         return `
           <div style="font-size:11px;color:#64748b;margin-bottom:4px">${month}</div>
-          <div style="margin-bottom:2px">🚀 Launched: <strong style="color:${C.launched}">${fmt(l)}</strong></div>
-          <div style="margin-bottom:2px">🛡 Intercepted: <strong style="color:${C.destroyed}">${fmt(d)}</strong></div>
-          <div>📊 Efficiency: <strong style="color:${efficiencyColor(pct)}">${pct}%</strong></div>
+          <div style="margin-bottom:2px">🚀 ${t("missileLaunchedLabel")} <strong style="color:${C.launched}">${fmt(l)}</strong></div>
+          <div style="margin-bottom:2px">🛡 ${t("missileInterceptedLabel")} <strong style="color:${C.destroyed}">${fmt(d)}</strong></div>
+          <div>📊 ${t("missileEfficiencyLabel")} <strong style="color:${efficiencyColor(pct)}">${pct}%</strong></div>
         `;
       },
     },
     legend: {
-      data: ["Launched", "Intercepted"],
+      data: [launchedLabel, interceptedLabel],
       textStyle: { color: C.label, fontSize: 11 },
       top: 4,
       right: 8,
@@ -166,7 +179,7 @@ function TypeDetailChart({
     yAxis: { type: "value", ...C.axisStyle, minInterval: 1 },
     series: [
       {
-        name: "Launched",
+        name: launchedLabel,
         type: "bar",
         data: launched,
         barMaxWidth: 28,
@@ -174,7 +187,7 @@ function TypeDetailChart({
         emphasis: { itemStyle: { color: "rgba(239,68,68,0.5)" } },
       },
       {
-        name: "Intercepted",
+        name: interceptedLabel,
         type: "bar",
         data: destroyed,
         barMaxWidth: 28,
@@ -182,7 +195,7 @@ function TypeDetailChart({
         emphasis: { itemStyle: { color: "rgba(34,197,94,0.5)" } },
       },
       {
-        name: "Got Through",
+        name: gotThroughLabel,
         type: "line",
         data: gotThrough,
         showSymbol: false,
@@ -195,34 +208,38 @@ function TypeDetailChart({
 
   return (
     <div>
-      {/* Stat strip */}
       <div className="flex gap-6 mb-4 flex-wrap">
         <div>
           <div className="text-2xl font-black text-white tabular-nums leading-none">
             {fmt(typeSummary.total_launched)}
           </div>
-          <div className="text-xs font-semibold uppercase tracking-widest text-[#555] mt-1">Total launched</div>
+          <div className="text-xs font-semibold uppercase tracking-widest text-[#555] mt-1">
+            {t("missileTotalLaunched")}
+          </div>
         </div>
         <div>
           <div className="text-2xl font-black tabular-nums leading-none" style={{ color: C.destroyed }}>
             {fmt(typeSummary.total_destroyed)}
           </div>
-          <div className="text-xs font-semibold uppercase tracking-widest text-[#555] mt-1">Intercepted</div>
+          <div className="text-xs font-semibold uppercase tracking-widest text-[#555] mt-1">
+            {t("missileIntercepted")}
+          </div>
         </div>
         <div>
           <div className="text-2xl font-black tabular-nums leading-none" style={{ color: C.launched }}>
             {fmt(typeSummary.total_launched - typeSummary.total_destroyed)}
           </div>
-          <div className="text-xs font-semibold uppercase tracking-widest text-[#555] mt-1">Got through</div>
+          <div className="text-xs font-semibold uppercase tracking-widest text-[#555] mt-1">
+            {t("missileGotThrough")}
+          </div>
         </div>
         <div>
-          <div
-            className="text-2xl font-black tabular-nums leading-none"
-            style={{ color: pctColor }}
-          >
+          <div className="text-2xl font-black tabular-nums leading-none" style={{ color: pctColor }}>
             {typeSummary.efficiency}%
           </div>
-          <div className="text-xs font-semibold uppercase tracking-widest text-[#555] mt-1">Efficiency</div>
+          <div className="text-xs font-semibold uppercase tracking-widest text-[#555] mt-1">
+            {t("missileEfficiency")}
+          </div>
         </div>
       </div>
       <ReactECharts option={option} style={{ height: 320 }} notMerge />
@@ -231,21 +248,21 @@ function TypeDetailChart({
 }
 
 export default function MissileTypeExplorer({ types, byModel }: Props) {
+  const { t } = useTranslation();
   const [selected, setSelected] = useState<string | null>(null);
 
   if (!types.length) return null;
 
-  // Sort pills by total launched descending
   const sorted = [...types].sort((a, b) => b.total_launched - a.total_launched);
-  const activeSummary = selected ? sorted.find((t) => t.model === selected) ?? null : null;
+  const activeSummary = selected ? sorted.find((item) => item.model === selected) ?? null : null;
 
   return (
     <section className="bg-brand-card border border-brand-border rounded-xl p-6">
-      <h2 className="text-xl font-bold text-white mb-1">Missile &amp; Drone Types</h2>
+      <h2 className="text-xl font-bold text-white mb-1">{t("missileTitle")}</h2>
       <p className="text-brand-text text-sm mb-5">
         {selected
-          ? `Monthly usage history for ${selected}. Click another type or "All" to compare.`
-          : "All weapon types ranked by total launches. Click a type to see its monthly history."}
+          ? `${t("missileSubtitleSelectedPrefix")} ${selected}${t("missileSubtitleSelectedSuffix")}`
+          : t("missileSubtitleAll")}
       </p>
 
       {/* Pill selector */}
@@ -258,24 +275,23 @@ export default function MissileTypeExplorer({ types, byModel }: Props) {
               : "border-brand-border text-[#555] hover:border-[#444] hover:text-[#888]"
           }`}
         >
-          All Types
+          {t("missileAllTypes")}
         </button>
-        {sorted.map((t) => (
+        {sorted.map((item) => (
           <button
-            key={t.model}
-            onClick={() => setSelected(t.model)}
+            key={item.model}
+            onClick={() => setSelected(item.model)}
             className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
-              selected === t.model
+              selected === item.model
                 ? "bg-brand-red border-brand-red text-white"
                 : "border-brand-border text-[#555] hover:border-[#444] hover:text-[#888]"
             }`}
           >
-            {t.model}
+            {item.model}
           </button>
         ))}
       </div>
 
-      {/* Chart */}
       {selected && activeSummary ? (
         <TypeDetailChart model={selected} byModel={byModel} typeSummary={activeSummary} />
       ) : (

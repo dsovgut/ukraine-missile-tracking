@@ -1,6 +1,7 @@
 import ReactECharts from "echarts-for-react";
 import type { WeeklyData } from "../types";
 import { C } from "../chartTheme";
+import { useTranslation } from "../i18n";
 
 interface Props {
   data: WeeklyData[];
@@ -20,6 +21,7 @@ function linReg(x: number[], y: number[]) {
 }
 
 export default function DefenseEfficiency({ data }: Props) {
+  const { t } = useTranslation();
   if (!data.length) return null;
 
   const weeks = data.map((d) => d.week_start);
@@ -30,6 +32,9 @@ export default function DefenseEfficiency({ data }: Props) {
   const { slope, intercept } = linReg(xs, efficiencies);
   const trendLine = xs.map((x) => Math.round((slope * x + intercept) * 10) / 10);
 
+  const efficiencyLabel = t("defenseEfficiency");
+  const trendLabel = t("defenseTrend");
+
   const option = {
     backgroundColor: C.bg,
     tooltip: {
@@ -37,12 +42,12 @@ export default function DefenseEfficiency({ data }: Props) {
       trigger: "axis",
       formatter: (params: { name: string; value: number; seriesName: string }[]) => {
         const week = params[0]?.name ?? "";
-        const eff = params.find((p) => p.seriesName === "Efficiency")?.value;
-        const trend = params.find((p) => p.seriesName === "Trend")?.value;
+        const eff = params.find((p) => p.seriesName === efficiencyLabel)?.value;
+        const trend = params.find((p) => p.seriesName === trendLabel)?.value;
         return `
-          <div style="font-size:11px;color:#64748b;margin-bottom:4px">Week of ${week}</div>
-          <div>🛡 Efficiency: <strong style="color:#60a5fa">${eff}%</strong></div>
-          ${trend != null ? `<div>📈 Trend: <strong style="color:#f59e0b">${trend}%</strong></div>` : ""}
+          <div style="font-size:11px;color:#64748b;margin-bottom:4px">${t("defenseWeekOf")} ${week}</div>
+          <div>🛡 ${t("defenseEfficiencyLabel")} <strong style="color:#60a5fa">${eff}%</strong></div>
+          ${trend != null ? `<div>📈 ${t("defenseTrendLabel")} <strong style="color:#f59e0b">${trend}%</strong></div>` : ""}
         `;
       },
     },
@@ -76,7 +81,7 @@ export default function DefenseEfficiency({ data }: Props) {
     },
     series: [
       {
-        name: "Efficiency",
+        name: efficiencyLabel,
         type: "line",
         data: efficiencies,
         smooth: true,
@@ -104,7 +109,7 @@ export default function DefenseEfficiency({ data }: Props) {
         },
       },
       {
-        name: "Trend",
+        name: trendLabel,
         type: "line",
         data: trendLine,
         smooth: false,
@@ -116,10 +121,8 @@ export default function DefenseEfficiency({ data }: Props) {
 
   return (
     <section className="bg-brand-card border border-brand-border rounded-xl p-6">
-      <h2 className="text-xl font-bold text-white mb-1">Defense Efficiency</h2>
-      <p className="text-brand-text text-sm mb-4">
-        Weekly interception rate (%) with overall average (dashed) and trend line.
-      </p>
+      <h2 className="text-xl font-bold text-white mb-1">{t("defenseTitle")}</h2>
+      <p className="text-brand-text text-sm mb-4">{t("defenseSubtitle")}</p>
       <ReactECharts option={option} style={{ height: 360 }} notMerge />
     </section>
   );

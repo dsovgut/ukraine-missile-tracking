@@ -1,4 +1,6 @@
 import type { Stats } from "../types";
+import { useTranslation } from "../i18n";
+import LangToggle from "./LangToggle";
 
 interface Props {
   stats: Stats | null;
@@ -21,34 +23,42 @@ function PeriodBlock({
   destroyed: number;
   efficiency: number;
 }) {
+  const { t } = useTranslation();
   return (
     <div>
       <div className="text-xs font-semibold uppercase tracking-widest text-[#555] mb-3">{label}</div>
       <div className="text-2xl font-black text-white tabular-nums leading-none">{fmt(launched)}</div>
-      <div className="text-xs text-[#555] mt-1 mb-2">launched</div>
-      <div className="text-sm font-semibold text-[#737373] tabular-nums">{fmt(destroyed)} intercepted</div>
-      <div className="text-xs font-bold text-[#ef4444] mt-1">{efficiency}% stopped</div>
+      <div className="text-xs text-[#555] mt-1 mb-2">{t("periodLaunched")}</div>
+      <div className="text-sm font-semibold text-[#737373] tabular-nums">
+        {fmt(destroyed)} {t("periodIntercepted")}
+      </div>
+      <div className="text-xs font-bold text-[#ef4444] mt-1">{efficiency}% {t("periodStopped")}</div>
     </div>
   );
 }
 
 export default function Hero({ stats, loading, totalCasualties }: Props) {
+  const { t } = useTranslation();
+
   return (
     <header className="border-b border-[#1a1a1a] bg-[#0a0a0a]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Title */}
-        <div className="mb-10">
-          <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight mb-2">
-            Ukraine Missile Tracker
-          </h1>
-          <p className="text-[#666] text-sm">
-            Documenting Russian missile and drone attacks on Ukraine
-            {stats?.all_time && (
-              <span className="ml-1">
-                · {stats.all_time.first_date} — {stats.all_time.last_date}
-              </span>
-            )}
-          </p>
+        {/* Title row */}
+        <div className="mb-10 flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight mb-2">
+              {t("heroTitle")}
+            </h1>
+            <p className="text-[#666] text-sm">
+              {t("heroSubtitle")}
+              {stats?.all_time && (
+                <span className="ml-1">
+                  · {stats.all_time.first_date} — {stats.all_time.last_date}
+                </span>
+              )}
+            </p>
+          </div>
+          <LangToggle />
         </div>
 
         {loading || !stats ? (
@@ -69,7 +79,7 @@ export default function Hero({ stats, loading, totalCasualties }: Props) {
               {/* Primary: Most recent attack */}
               <div>
                 <div className="text-xs font-semibold uppercase tracking-widest text-[#444] mb-3">
-                  Most recent attack · {stats.today.date}
+                  {t("heroRecentAttack")} · {stats.today.date}
                 </div>
                 <div
                   className="text-[72px] sm:text-[96px] font-black leading-none tabular-nums"
@@ -78,7 +88,7 @@ export default function Hero({ stats, loading, totalCasualties }: Props) {
                   {fmt(stats.today.launched)}
                 </div>
                 <div className="text-xs font-semibold uppercase tracking-[0.25em] text-[#555] mt-3">
-                  Missiles Launched
+                  {t("heroMissilesLaunched")}
                 </div>
                 <div className="flex gap-8 mt-4">
                   <div>
@@ -86,7 +96,7 @@ export default function Hero({ stats, loading, totalCasualties }: Props) {
                       {fmt(stats.today.destroyed)}
                     </div>
                     <div className="text-xs font-semibold uppercase tracking-[0.2em] text-[#555] mt-1">
-                      Intercepted
+                      {t("heroIntercepted")}
                     </div>
                   </div>
                   <div>
@@ -94,7 +104,7 @@ export default function Hero({ stats, loading, totalCasualties }: Props) {
                       {stats.today.efficiency}%
                     </div>
                     <div className="text-xs font-semibold uppercase tracking-[0.2em] text-[#555] mt-1">
-                      Stopped
+                      {t("heroStopped")}
                     </div>
                   </div>
                 </div>
@@ -106,7 +116,7 @@ export default function Hero({ stats, loading, totalCasualties }: Props) {
               {/* All-time total */}
               <div>
                 <div className="text-xs font-semibold uppercase tracking-widest text-[#444] mb-3">
-                  Total since {stats.all_time.first_date}
+                  {t("heroTotalSince")} {stats.all_time.first_date}
                 </div>
                 <div
                   className="text-[72px] sm:text-[96px] font-black leading-none tabular-nums"
@@ -115,7 +125,7 @@ export default function Hero({ stats, loading, totalCasualties }: Props) {
                   {fmt(stats.all_time.launched)}
                 </div>
                 <div className="text-xs font-semibold uppercase tracking-[0.25em] text-[#555] mt-3">
-                  Missiles Fired at Ukraine
+                  {t("heroMissilesFired")}
                 </div>
                 <div className="flex gap-8 mt-4">
                   <div>
@@ -123,7 +133,7 @@ export default function Hero({ stats, loading, totalCasualties }: Props) {
                       {fmt(stats.all_time.destroyed)}
                     </div>
                     <div className="text-xs font-semibold uppercase tracking-[0.2em] text-[#555] mt-1">
-                      Intercepted
+                      {t("heroIntercepted")}
                     </div>
                   </div>
                   <div>
@@ -131,7 +141,7 @@ export default function Hero({ stats, loading, totalCasualties }: Props) {
                       {stats.all_time.efficiency}%
                     </div>
                     <div className="text-xs font-semibold uppercase tracking-[0.2em] text-[#555] mt-1">
-                      Avg stopped
+                      {t("heroAvgStopped")}
                     </div>
                   </div>
                 </div>
@@ -143,7 +153,7 @@ export default function Hero({ stats, loading, totalCasualties }: Props) {
                   <div className="hidden sm:block w-px self-stretch bg-[#1a1a1a]" />
                   <div>
                     <div className="text-xs font-semibold uppercase tracking-widest text-[#444] mb-3">
-                      Russian casualties
+                      {t("heroCasualties")}
                     </div>
                     <div
                       className="text-[72px] sm:text-[96px] font-black leading-none tabular-nums"
@@ -152,7 +162,7 @@ export default function Hero({ stats, loading, totalCasualties }: Props) {
                       {fmt(totalCasualties)}
                     </div>
                     <div className="text-xs font-semibold uppercase tracking-[0.25em] text-[#555] mt-3">
-                      Troops Lost
+                      {t("heroTroopsLost")}
                     </div>
                   </div>
                 </>
@@ -162,19 +172,19 @@ export default function Hero({ stats, loading, totalCasualties }: Props) {
             {/* Period summaries */}
             <div className="border-t border-[#1a1a1a] pt-8 grid grid-cols-3 gap-8">
               <PeriodBlock
-                label="This Week"
+                label={t("periodThisWeek")}
                 launched={stats.this_week.launched}
                 destroyed={stats.this_week.destroyed}
                 efficiency={stats.this_week.efficiency}
               />
               <PeriodBlock
-                label="This Month"
+                label={t("periodThisMonth")}
                 launched={stats.this_month.launched}
                 destroyed={stats.this_month.destroyed}
                 efficiency={stats.this_month.efficiency}
               />
               <PeriodBlock
-                label="All Time"
+                label={t("periodAllTime")}
                 launched={stats.all_time.launched}
                 destroyed={stats.all_time.destroyed}
                 efficiency={stats.all_time.efficiency}

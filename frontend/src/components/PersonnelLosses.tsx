@@ -1,12 +1,14 @@
 import ReactECharts from "echarts-for-react";
 import type { WeeklyData } from "../types";
 import { C } from "../chartTheme";
+import { useTranslation } from "../i18n";
 
 interface Props {
   data: WeeklyData[];
 }
 
 export default function PersonnelLosses({ data }: Props) {
+  const { t } = useTranslation();
   const hasPersonnel = data.some((d) => (d.personnel_losses ?? 0) > 0);
   if (!data.length || !hasPersonnel) return null;
 
@@ -20,6 +22,9 @@ export default function PersonnelLosses({ data }: Props) {
     return Math.round(slice.reduce((a, b) => a + b, 0) / 4);
   });
 
+  const weeklyLossesLabel = t("personnelWeeklyLosses");
+  const avg4wLabel = t("personnel4WeekAvg");
+
   const option = {
     backgroundColor: C.bg,
     tooltip: {
@@ -28,12 +33,12 @@ export default function PersonnelLosses({ data }: Props) {
       axisPointer: { type: "shadow" },
       formatter: (params: { name: string; value: number; seriesName: string }[]) => {
         const week = params[0]?.name ?? "";
-        const bar = params.find((p) => p.seriesName === "Weekly Losses")?.value ?? 0;
-        const avg = params.find((p) => p.seriesName === "4-week Avg")?.value;
+        const bar = params.find((p) => p.seriesName === weeklyLossesLabel)?.value ?? 0;
+        const avg = params.find((p) => p.seriesName === avg4wLabel)?.value;
         return `
-          <div style="font-size:11px;color:#64748b;margin-bottom:4px">Week of ${week}</div>
-          <div>⚔️ Losses: <strong style="color:#f1f5f9">${bar.toLocaleString()}</strong></div>
-          ${avg != null ? `<div>📊 4-wk avg: <strong style="color:#f1f5f9">${avg.toLocaleString()}</strong></div>` : ""}
+          <div style="font-size:11px;color:#64748b;margin-bottom:4px">${t("personnelWeekOf")} ${week}</div>
+          <div>⚔️ ${t("personnelLossesLabel")} <strong style="color:#f1f5f9">${bar.toLocaleString()}</strong></div>
+          ${avg != null ? `<div>📊 ${t("personnel4wkAvgLabel")} <strong style="color:#f1f5f9">${avg.toLocaleString()}</strong></div>` : ""}
         `;
       },
     },
@@ -56,21 +61,21 @@ export default function PersonnelLosses({ data }: Props) {
     },
     yAxis: {
       type: "value",
-      name: "Personnel",
+      name: t("personnelPersonnel"),
       nameTextStyle: { color: C.label, fontSize: 11 },
       ...C.axisStyle,
     },
     dataZoom: [{ type: "inside", start: 0, end: 100 }],
     series: [
       {
-        name: "Weekly Losses",
+        name: weeklyLossesLabel,
         type: "bar",
         data: losses,
         itemStyle: { color: C.personnel, borderRadius: [2, 2, 0, 0] },
         barMaxWidth: 8,
       },
       {
-        name: "4-week Avg",
+        name: avg4wLabel,
         type: "line",
         data: rollingAvg,
         smooth: true,
@@ -83,10 +88,8 @@ export default function PersonnelLosses({ data }: Props) {
 
   return (
     <section className="bg-brand-card border border-brand-border rounded-xl p-6">
-      <h2 className="text-xl font-bold text-white mb-1">Russian Personnel Losses</h2>
-      <p className="text-brand-text text-sm mb-4">
-        Weekly reported Russian personnel casualties with 4-week rolling average.
-      </p>
+      <h2 className="text-xl font-bold text-white mb-1">{t("personnelTitle")}</h2>
+      <p className="text-brand-text text-sm mb-4">{t("personnelSubtitle")}</p>
       <ReactECharts option={option} style={{ height: 340 }} notMerge />
     </section>
   );

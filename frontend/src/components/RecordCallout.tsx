@@ -1,8 +1,8 @@
 import type { DailyData } from "../types";
+import { useTranslation } from "../i18n";
 
 interface Props {
   daily: DailyData[];
-  /** Which subset of records to show */
   variant: "attacks" | "defense";
 }
 
@@ -25,16 +25,13 @@ function computeRecords(daily: DailyData[]) {
   const attackDays = daily.filter((d) => d.launched > 0);
   if (!attackDays.length) return null;
 
-  // Largest single attack
   const biggest = attackDays.reduce((m, d) => (d.launched > m.launched ? d : m), attackDays[0]);
 
-  // Most intercepted in a single day
   const mostIntercepted = attackDays.reduce(
     (m, d) => (d.destroyed > m.destroyed ? d : m),
     attackDays[0],
   );
 
-  // Best interception rate on a significant attack day (≥20 missiles)
   const sigDays = attackDays.filter((d) => d.launched >= 20);
   const bestRate =
     sigDays.length > 0
@@ -45,7 +42,6 @@ function computeRecords(daily: DailyData[]) {
         }, sigDays[0])
       : null;
 
-  // Longest gap between consecutive attack dates
   const sorted = [...attackDays].sort((a, b) => a.date.localeCompare(b.date));
   let maxGapDays = 0;
   let gapEndDate = "";
@@ -63,6 +59,7 @@ function computeRecords(daily: DailyData[]) {
 }
 
 export default function RecordCallout({ daily, variant }: Props) {
+  const { t } = useTranslation();
   const r = computeRecords(daily);
   if (!r) return null;
 
@@ -71,30 +68,30 @@ export default function RecordCallout({ daily, variant }: Props) {
       ? [
           {
             icon: "⚡",
-            label: "Record attack",
-            value: `${r.biggest.launched.toLocaleString()} missiles`,
+            label: t("recordAttack"),
+            value: `${r.biggest.launched.toLocaleString()} ${t("recordMissiles")}`,
             detail: fmtDate(r.biggest.date),
           },
           {
             icon: "⏱",
-            label: "Longest pause",
-            value: `${r.maxGapDays} days silence`,
-            detail: `ended ${fmtDate(r.gapEndDate)}`,
+            label: t("recordLongestPause"),
+            value: `${r.maxGapDays} ${t("recordDaysSilence")}`,
+            detail: `${t("recordEnded")} ${fmtDate(r.gapEndDate)}`,
           },
         ]
       : [
           {
             icon: "🛡",
-            label: "Best defense day",
+            label: t("recordBestDefense"),
             value: r.bestRate
-              ? `${Math.round((r.bestRate.destroyed / r.bestRate.launched) * 100)}% stopped`
+              ? `${Math.round((r.bestRate.destroyed / r.bestRate.launched) * 100)}${t("recordPctStopped")}`
               : "—",
             detail: r.bestRate ? fmtDate(r.bestRate.date) : "",
           },
           {
             icon: "🎯",
-            label: "Most intercepted",
-            value: `${r.mostIntercepted.destroyed.toLocaleString()} in one day`,
+            label: t("recordMostIntercepted"),
+            value: `${r.mostIntercepted.destroyed.toLocaleString()} ${t("recordInOneDay")}`,
             detail: fmtDate(r.mostIntercepted.date),
           },
         ];

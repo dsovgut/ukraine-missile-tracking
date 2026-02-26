@@ -1,16 +1,18 @@
 import ReactECharts from "echarts-for-react";
 import type { DailyData } from "../types";
 import { C } from "../chartTheme";
+import { useTranslation, MONTH_NAMES, DAY_NAMES } from "../i18n";
 
 interface Props {
   data: DailyData[];
 }
 
-const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-
 export default function PatternCharts({ data }: Props) {
+  const { t, lang } = useTranslation();
   if (!data.length) return null;
+
+  const monthNames = MONTH_NAMES[lang];
+  const dayNames = DAY_NAMES[lang];
 
   // Monthly averages
   const monthBuckets: number[][] = Array.from({ length: 12 }, () => []);
@@ -33,6 +35,10 @@ export default function PatternCharts({ data }: Props) {
     b.length ? Math.round((b.reduce((a, c) => a + c, 0) / b.length) * 10) / 10 : 0
   );
 
+  const avgLabel = t("patternAvg");
+  const missilesUnit = t("patternMissilesUnit");
+  const avgLaunchesLabel = t("patternAvgLaunches");
+
   const barOpts = (categories: string[], values: number[], xLabel: string) => ({
     backgroundColor: C.bg,
     tooltip: {
@@ -40,7 +46,7 @@ export default function PatternCharts({ data }: Props) {
       trigger: "axis",
       formatter: (params: { name: string; value: number }[]) =>
         `<div style="font-size:11px;color:#64748b">${params[0]?.name}</div>` +
-        `<div>Avg: <strong style="color:#f1f5f9">${params[0]?.value}</strong> missiles</div>`,
+        `<div>${avgLabel} <strong style="color:#f1f5f9">${params[0]?.value}</strong> ${missilesUnit}</div>`,
     },
     grid: { left: 52, right: 16, top: 28, bottom: 48, containLabel: false },
     xAxis: {
@@ -54,7 +60,7 @@ export default function PatternCharts({ data }: Props) {
     },
     yAxis: {
       type: "value",
-      name: "Avg launches",
+      name: avgLaunchesLabel,
       nameTextStyle: { color: C.label, fontSize: 11 },
       ...C.axisStyle,
     },
@@ -92,23 +98,25 @@ export default function PatternCharts({ data }: Props) {
 
   return (
     <section className="bg-brand-card border border-brand-border rounded-xl p-6">
-      <h2 className="text-xl font-bold text-white mb-1">Attack Patterns</h2>
-      <p className="text-brand-text text-sm mb-6">
-        Average missiles launched per day, broken down by month and day of week (days with 0 attacks excluded).
-      </p>
+      <h2 className="text-xl font-bold text-white mb-1">{t("patternTitle")}</h2>
+      <p className="text-brand-text text-sm mb-6">{t("patternSubtitle")}</p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div>
-          <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-widest mb-3">By Month</h3>
+          <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-widest mb-3">
+            {t("patternByMonth")}
+          </h3>
           <ReactECharts
-            option={barOpts(MONTH_NAMES, monthAvgs, "Month")}
+            option={barOpts(monthNames, monthAvgs, t("patternMonthAxisLabel"))}
             style={{ height: 280 }}
             notMerge
           />
         </div>
         <div>
-          <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-widest mb-3">By Day of Week</h3>
+          <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-widest mb-3">
+            {t("patternByDay")}
+          </h3>
           <ReactECharts
-            option={barOpts(DAY_NAMES, dayAvgs, "Day")}
+            option={barOpts(dayNames, dayAvgs, t("patternDayAxisLabel"))}
             style={{ height: 280 }}
             notMerge
           />
