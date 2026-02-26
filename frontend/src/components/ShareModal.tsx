@@ -29,6 +29,21 @@ interface Props {
 
 const SITE_URL = typeof window !== "undefined" ? window.location.origin : "";
 
+/** Parses **bold** syntax in bullet text and renders with highlight color */
+function renderHighlightedText(text: string, color: string) {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return (
+        <strong key={i} style={{ color, fontWeight: 700 }}>
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+    return part;
+  });
+}
+
 export default function ShareModal({ card, onClose }: Props) {
   const { t } = useTranslation();
   const cardRef = useRef<HTMLDivElement>(null);
@@ -217,7 +232,9 @@ export default function ShareModal({ card, onClose }: Props) {
                         flexShrink: 0,
                       }}
                     />
-                    <span style={{ fontSize: 13, color: "#e2e8f0", lineHeight: 1.5 }}>{b}</span>
+                    <span style={{ fontSize: 13, color: "#e2e8f0", lineHeight: 1.5 }}>
+                      {renderHighlightedText(b, card.categoryColor)}
+                    </span>
                   </div>
                 ))}
               </div>

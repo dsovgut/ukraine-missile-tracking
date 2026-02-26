@@ -149,10 +149,6 @@ const translations = {
     compareRussiaSpent: "Russia spent",
     compareEntireDefense: "'s entire annual military budget",
     comparePrompt: "Select a country above to see personalized comparisons.",
-    // LiveCounter
-    liveCounterSince: "Since you opened this page, an estimated",
-    liveCounterMissiles: "missiles & drones have been launched at Ukraine",
-    liveCounterRate: "Rate:",
     // Footer
     footerData: "Data:",
     footerUpdated: "Updated daily.",
@@ -307,10 +303,6 @@ const translations = {
     compareRussiaSpent: "Росія витратила",
     compareEntireDefense: " усього річного військового бюджету",
     comparePrompt: "Оберіть країну вище, щоб побачити персоналізовані порівняння.",
-    // LiveCounter
-    liveCounterSince: "З моменту відкриття цієї сторінки приблизно",
-    liveCounterMissiles: "ракет та дронів запущено по Україні",
-    liveCounterRate: "Частота:",
     // Footer
     footerData: "Дані:",
     footerUpdated: "Оновлюється щодня.",

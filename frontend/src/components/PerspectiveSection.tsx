@@ -48,9 +48,12 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
   const totalLaunched   = stats.all_time.launched;
   const totalDestroyed  = stats.all_time.destroyed;
   const efficiency      = stats.all_time.efficiency;
-  const days            = stats.all_time.days;
   const totalCost       = estimateTotalMissileCost(missileTypes);
   const costBillions    = totalCost / 1_000_000_000;
+
+  // Real days since Feb 24, 2022 (full-scale invasion start)
+  const INVASION_START = new Date("2022-02-24T00:00:00Z").getTime();
+  const days = Math.floor((Date.now() - INVASION_START) / (86_400_000));
 
   // Estimate drone count (Shahed types)
   const droneTypes = missileTypes.filter(
@@ -70,6 +73,16 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
 
   // Daily average for context
   const avgPerDay = Math.round(totalLaunched / days);
+
+  // Best defense day (100% or highest interception rate with significant volume)
+  const attackDays = daily.filter((d) => d.launched >= 20);
+  const bestDefenseDay = attackDays.length > 0
+    ? attackDays.reduce((best, d) => {
+        const rate = d.destroyed / d.launched;
+        const bestRate = best.destroyed / best.launched;
+        return rate > bestRate ? d : best;
+      }, attackDays[0])
+    : null;
 
   // Only render if we have meaningful data
   if (totalCasualties < 100 || totalLaunched < 10) return null;
@@ -242,10 +255,10 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
       comparisonNote: "Based on conservative Russian domestic procurement pricing. Real replacement costs are 3–6× higher.",
       bars: [],
       bullets: [
-        `The James Webb Space Telescope — the most powerful space telescope ever built, 30 years in development — cost ~$10B. You could build it from scratch and still have $${(totalCost / 1e9 - 10).toFixed(1)}B left over.`,
-        `Two Large Hadron Colliders — the world's largest particle accelerator that discovered the Higgs boson — cost ~$4.75B each. You could build two and still have ~$${(totalCost / 1e9 - 9.5).toFixed(1)}B to spare.`,
-        `Fund the global fight against malaria for two years — the WHO estimates $5–6B/year to fund bed nets, treatments, and vaccines worldwide.`,
-        `${homes.toLocaleString()} affordable homes at $250K each — enough to house ~${Math.round(homes * 2.2 / 1000) * 1000} people and end homelessness in several major cities.`,
+        `**The James Webb Space Telescope** — the most powerful space telescope ever built, 30 years in development — cost **~$10B**. You could build it from scratch and still have **$${(totalCost / 1e9 - 10).toFixed(1)}B left over**.`,
+        `**Two Large Hadron Colliders** — the world's largest particle accelerator that discovered the Higgs boson — cost ~$4.75B each. You could build two and still have **~$${(totalCost / 1e9 - 9.5).toFixed(1)}B to spare**.`,
+        `**Fund the global fight against malaria for two years** — the WHO estimates $5–6B/year to fund bed nets, treatments, and vaccines worldwide.`,
+        `**${homes.toLocaleString()} affordable homes** at $250K each — enough to house **~${Math.round(homes * 2.2 / 1000) * 1000} people** and end homelessness in several major cities.`,
       ],
       sourceNote: "Missile costs: Defence Express / militarnyi.com. JWST: NASA ($10B). LHC: CERN ($4.75B). Malaria: WHO Global Malaria Programme. Housing: US avg affordable housing cost.",
     };
@@ -267,6 +280,37 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
     };
   }
 
+  function buildBestDefenseDayCard(): ShareCardData {
+    if (!bestDefenseDay) {
+      return {
+        category: "Defense",
+        categoryColor: "#22c55e",
+        headline: "Insufficient data for best defense day",
+        bigNumber: "—",
+        bigNumberCaption: "",
+        comparisonNote: "",
+        bars: [],
+        sourceNote: "",
+      };
+    }
+    const rate = Math.round((bestDefenseDay.destroyed / bestDefenseDay.launched) * 100);
+    const dateStr = new Date(bestDefenseDay.date).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+    return {
+      category: "Defense",
+      categoryColor: "#22c55e",
+      headline: `${rate}% of all missiles stopped in a single day — ${bestDefenseDay.launched} launched, ${bestDefenseDay.destroyed} intercepted`,
+      bigNumber: `${rate}%`,
+      bigNumberCaption: `interception rate on ${dateStr}`,
+      comparisonNote: `On ${dateStr}, Russia launched ${bestDefenseDay.launched} missiles and drones at Ukraine. Ukraine's air defense intercepted ${bestDefenseDay.destroyed} of them — a ${rate}% success rate. This is among the most effective single-day air defense performances in modern warfare.`,
+      bars: [
+        { label: "Launched", sublabel: `${bestDefenseDay.launched} missiles & drones`, value: bestDefenseDay.launched, color: "#ef4444", isHighlight: true },
+        { label: "Intercepted", sublabel: `${rate}% stopped`, value: bestDefenseDay.destroyed, color: "#22c55e" },
+        { label: "Got Through", sublabel: "reached their targets", value: bestDefenseDay.launched - bestDefenseDay.destroyed, color: "#f59e0b" },
+      ],
+      sourceNote: "Data: Ukrainian Air Force official reports via Kaggle/piterfm.",
+    };
+  }
+
   function buildDurationCard(): ShareCardData {
     const moreDays = days - US_WWII_DAYS;
     const isLonger = moreDays > 0;
@@ -274,18 +318,18 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
       category: "Timeline",
       categoryColor: "#60a5fa",
       headline: isLonger
-        ? `${days.toLocaleString()} days — the invasion has lasted longer than US involvement in World War II`
-        : `${days.toLocaleString()} days and counting — approaching the length of US involvement in WWII (${US_WWII_DAYS.toLocaleString()} days)`,
+        ? `${days.toLocaleString()} days — the full-scale invasion has lasted longer than US involvement in World War II`
+        : `${days.toLocaleString()} days and counting — the full-scale invasion is approaching the length of US involvement in WWII`,
       bigNumber: days.toLocaleString(),
-      bigNumberCaption: "days since the full-scale invasion began (Feb 24, 2022)",
+      bigNumberCaption: "days since Russia's full-scale invasion began (Feb 24, 2022)",
       comparisonNote: isLonger
         ? `That is ${moreDays} days longer than the entire US involvement in WWII (Dec 7, 1941 – Aug 15, 1945).`
-        : `US involvement in WWII lasted ${US_WWII_DAYS.toLocaleString()} days — just ${US_WWII_DAYS - days} days more. At this pace, the invasion will surpass that grim milestone soon.`,
+        : `US involvement in WWII lasted ${US_WWII_DAYS.toLocaleString()} days. The full-scale invasion of Ukraine has already lasted ${days.toLocaleString()} days — just ${US_WWII_DAYS - days} days short of that grim milestone.`,
       bars: [
-        { label: "Russia's invasion of Ukraine", sublabel: "Feb 24, 2022 – present", value: days, color: "#60a5fa", isHighlight: true },
+        { label: "Full-scale invasion of Ukraine", sublabel: "Feb 24, 2022 – present", value: days, color: "#60a5fa", isHighlight: true },
         { label: "US involvement in WWII", sublabel: "Dec 7, 1941 – Aug 15, 1945", value: US_WWII_DAYS, color: "#f59e0b" },
       ],
-      sourceNote: "US WWII: Dec 7, 1941 – Aug 15, 1945 = 1,347 days. Invasion start: Feb 24, 2022.",
+      sourceNote: "US WWII: Dec 7, 1941 – Aug 15, 1945 = 1,347 days. Full-scale invasion: Feb 24, 2022.",
     };
   }
 
@@ -300,9 +344,9 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
       comparisonNote: "This is 'start a new civilization' money. Instead, it was spent on destruction.",
       bars: [],
       bullets: [
-        `End extreme world hunger for a decade — the UN estimates $39–50B/year to end hunger and malnutrition globally. $${warSpendB.toFixed(0)}B could foot the bill for the entire planet for 10 straight years.`,
-        `Provide clean water for the world for 4–5 years — the World Bank estimates $114B/year for universal safe drinking water and sanitation. $${warSpendB.toFixed(0)}B could solve the global water crisis for half a decade.`,
-        `Build a permanent Moon colony — NASA's entire Apollo program cost ~$257B (inflation-adjusted). For $${warSpendB.toFixed(0)}B, you could fund Apollo twice, or build and sustain a permanent lunar research colony for decades.`,
+        `**End extreme world hunger for a decade** — the UN estimates $39–50B/year to end hunger and malnutrition globally. $${warSpendB.toFixed(0)}B could foot the bill for **the entire planet for 10 straight years**.`,
+        `**Provide clean water for the world** for 4–5 years — the World Bank estimates $114B/year for universal safe drinking water and sanitation. $${warSpendB.toFixed(0)}B could **solve the global water crisis** for half a decade.`,
+        `**Build a permanent Moon colony** — NASA's entire Apollo program cost ~$257B (inflation-adjusted). For $${warSpendB.toFixed(0)}B, you could **fund Apollo twice**, or build and sustain a permanent lunar research colony for decades.`,
       ],
       sourceNote: "Russian defense spending: SIPRI, official Russian federal budget. Hunger: UN/FAO. Water: World Bank. Apollo: NASA inflation-adjusted estimates.",
     };
@@ -461,6 +505,14 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
       subtext: "No air defense system in history has been tested at this scale and threat diversity",
       build: buildIronDomeCard,
     },
+    ...(bestDefenseDay ? [{
+      id: "bestDefense",
+      eyebrow: "Defense",
+      eyebrowColor: "#22c55e",
+      headline: `Best defense day: ${Math.round((bestDefenseDay.destroyed / bestDefenseDay.launched) * 100)}% stopped`,
+      subtext: `${bestDefenseDay.launched} missiles launched, ${bestDefenseDay.destroyed} intercepted on ${new Date(bestDefenseDay.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`,
+      build: buildBestDefenseDayCard,
+    }] as CardDef[] : []),
     {
       id: "warEconomy",
       eyebrow: "Economy",
@@ -675,10 +727,19 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
             {/* Mini bar preview */}
             {renderMiniBars(currentCard)}
 
-            {/* CTA */}
-            <p className="text-[11px] text-brand-muted mt-5 group-hover:text-[#666] transition-colors">
-              View full details &amp; share →
-            </p>
+            {/* Share CTA */}
+            <div className="flex items-center gap-2 mt-5 text-brand-muted group-hover:text-brand-red transition-colors">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="flex-shrink-0">
+                <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+              </svg>
+              <span className="text-xs font-semibold uppercase tracking-wider">
+                Tap to view details &amp; share
+              </span>
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="flex-shrink-0">
+                <path d="M6 3L11 8L6 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
           </button>
         )}
 
