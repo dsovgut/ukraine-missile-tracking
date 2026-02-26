@@ -61,7 +61,7 @@ export default function PatternCharts({ data }: Props) {
     series: [
       {
         type: "bar",
-        data: values.map((v, i) => ({
+        data: values.map((v) => ({
           value: v,
           itemStyle: {
             color: {
