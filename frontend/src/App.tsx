@@ -5,7 +5,10 @@ import DefenseEfficiency from "./components/DefenseEfficiency";
 import PatternCharts from "./components/PatternCharts";
 import PersonnelLosses from "./components/PersonnelLosses";
 import WeatherScatter from "./components/WeatherScatter";
-import { useDailyData, useStats, useWeeklyData } from "./hooks/useData";
+import CumulativeChart from "./components/CumulativeChart";
+import MissileTypeExplorer from "./components/MissileTypeExplorer";
+import RecordCallout from "./components/RecordCallout";
+import { useDailyData, useStats, useWeeklyData, useMissileTypes, useByModel } from "./hooks/useData";
 
 function Spinner() {
   return (
@@ -19,8 +22,10 @@ export default function App() {
   const { data: stats, loading: statsLoading } = useStats();
   const { data: daily, loading: dailyLoading } = useDailyData();
   const { data: weekly, loading: weeklyLoading } = useWeeklyData();
+  const { data: missileTypes, loading: typesLoading } = useMissileTypes();
+  const { data: byModel, loading: byModelLoading } = useByModel();
 
-  const chartsLoading = dailyLoading || weeklyLoading;
+  const chartsLoading = dailyLoading || weeklyLoading || typesLoading || byModelLoading;
 
   return (
     <div className="min-h-screen bg-brand-bg font-sans">
@@ -31,13 +36,23 @@ export default function App() {
           <Spinner />
         ) : (
           <>
+            {/* Record callout — attack records */}
+            <RecordCallout daily={daily} variant="attacks" />
+
             <PersonnelLosses data={weekly} />
+            <CumulativeChart data={daily} />
             <TimeSeriesChart data={daily} />
+
+            {/* Record callout — defense records */}
+            <RecordCallout daily={daily} variant="defense" />
+
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
               <WeeklyBarsChart data={weekly} />
               <DefenseEfficiency data={weekly} />
             </div>
+
             <PatternCharts data={daily} />
+            <MissileTypeExplorer types={missileTypes} byModel={byModel} />
             <WeatherScatter data={daily} />
           </>
         )}

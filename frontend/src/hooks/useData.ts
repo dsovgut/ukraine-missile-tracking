@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { DailyData, MissileType, Stats, WeeklyData } from "../types";
+import type { ByModelData, DailyData, MissileType, Stats, WeeklyData } from "../types";
 
 const API = (import.meta.env.VITE_API_URL as string) ?? "";
 
@@ -47,6 +47,17 @@ export function useMissileTypes() {
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     fetchJson<MissileType[]>("/api/missile-types")
+      .then(setData)
+      .finally(() => setLoading(false));
+  }, []);
+  return { data, loading };
+}
+
+export function useByModel() {
+  const [data, setData] = useState<ByModelData[]>([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    fetchJson<ByModelData[]>("/api/by-model")
       .then(setData)
       .finally(() => setLoading(false));
   }, []);

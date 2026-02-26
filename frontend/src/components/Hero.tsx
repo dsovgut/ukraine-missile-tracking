@@ -63,15 +63,13 @@ export default function Hero({ stats, loading }: Props) {
           </div>
         ) : (
           <>
-            {/* Date label */}
-            <div className="mb-5 text-xs font-semibold uppercase tracking-widest text-[#444]">
-              Most recent attack · {stats.today.date}
-            </div>
-
             {/* Hero stat block */}
-            <div className="flex flex-col sm:flex-row sm:items-end gap-6 sm:gap-12 mb-12">
-              {/* Primary: Missiles Launched */}
+            <div className="flex flex-col sm:flex-row sm:items-end gap-10 sm:gap-16 mb-12">
+              {/* Primary: Most recent attack */}
               <div>
+                <div className="text-xs font-semibold uppercase tracking-widest text-[#444] mb-3">
+                  Most recent attack · {stats.today.date}
+                </div>
                 <div
                   className="text-[72px] sm:text-[96px] font-black leading-none tabular-nums"
                   style={{ color: "#ef4444", letterSpacing: "-0.03em" }}
@@ -81,24 +79,59 @@ export default function Hero({ stats, loading }: Props) {
                 <div className="text-xs font-semibold uppercase tracking-[0.25em] text-[#555] mt-3">
                   Missiles Launched
                 </div>
-              </div>
-
-              {/* Secondary stats */}
-              <div className="flex flex-row sm:flex-col gap-8 sm:gap-5 sm:pb-2">
-                <div>
-                  <div className="text-3xl font-black text-[#e5e5e5] tabular-nums leading-none">
-                    {fmt(stats.today.destroyed)}
+                <div className="flex gap-8 mt-4">
+                  <div>
+                    <div className="text-2xl font-black text-[#e5e5e5] tabular-nums leading-none">
+                      {fmt(stats.today.destroyed)}
+                    </div>
+                    <div className="text-xs font-semibold uppercase tracking-[0.2em] text-[#555] mt-1">
+                      Intercepted
+                    </div>
                   </div>
-                  <div className="text-xs font-semibold uppercase tracking-[0.2em] text-[#555] mt-1">
-                    Intercepted
+                  <div>
+                    <div className="text-2xl font-black text-[#737373] tabular-nums leading-none">
+                      {stats.today.efficiency}%
+                    </div>
+                    <div className="text-xs font-semibold uppercase tracking-[0.2em] text-[#555] mt-1">
+                      Stopped
+                    </div>
                   </div>
                 </div>
-                <div>
-                  <div className="text-3xl font-black text-[#737373] tabular-nums leading-none">
-                    {stats.today.efficiency}%
+              </div>
+
+              {/* Divider */}
+              <div className="hidden sm:block w-px self-stretch bg-[#1a1a1a]" />
+
+              {/* All-time total */}
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-widest text-[#444] mb-3">
+                  Total since {stats.all_time.first_date}
+                </div>
+                <div
+                  className="text-[72px] sm:text-[96px] font-black leading-none tabular-nums"
+                  style={{ color: "#e5e5e5", letterSpacing: "-0.03em" }}
+                >
+                  {fmt(stats.all_time.launched)}
+                </div>
+                <div className="text-xs font-semibold uppercase tracking-[0.25em] text-[#555] mt-3">
+                  Missiles Fired at Ukraine
+                </div>
+                <div className="flex gap-8 mt-4">
+                  <div>
+                    <div className="text-2xl font-black text-[#22c55e] tabular-nums leading-none">
+                      {fmt(stats.all_time.destroyed)}
+                    </div>
+                    <div className="text-xs font-semibold uppercase tracking-[0.2em] text-[#555] mt-1">
+                      Intercepted
+                    </div>
                   </div>
-                  <div className="text-xs font-semibold uppercase tracking-[0.2em] text-[#555] mt-1">
-                    Stopped
+                  <div>
+                    <div className="text-2xl font-black text-[#737373] tabular-nums leading-none">
+                      {stats.all_time.efficiency}%
+                    </div>
+                    <div className="text-xs font-semibold uppercase tracking-[0.2em] text-[#555] mt-1">
+                      Avg stopped
+                    </div>
                   </div>
                 </div>
               </div>

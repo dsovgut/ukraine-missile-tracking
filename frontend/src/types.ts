@@ -44,3 +44,10 @@ export interface MissileType {
   total_destroyed: number;
   efficiency: number;
 }
+
+export interface ByModelData {
+  date: string;
+  model: string;
+  launched: number;
+  destroyed: number;
+}
