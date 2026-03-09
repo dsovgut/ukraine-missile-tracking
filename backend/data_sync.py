@@ -178,7 +178,10 @@ def sync_data():
                 db.commit()
                 logger.info(f"Synced {len(weather_df)} weather records")
 
-        logger.info("Data sync complete!")
+        # Invalidate API response cache so fresh data is served
+        from .routes import _cache
+        _cache.clear()
+        logger.info("Data sync complete — cache invalidated")
     except Exception as exc:
         logger.error(f"Data sync failed: {exc}")
         db.rollback()

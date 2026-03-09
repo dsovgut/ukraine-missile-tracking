@@ -2,9 +2,9 @@ import logging
 import os
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from .database import init_db
@@ -22,10 +22,23 @@ FRONTEND_DIST = os.path.join(os.path.dirname(os.path.dirname(__file__)), "fronte
 async def lifespan(app: FastAPI):
     logger.info("Starting up Ukraine Missile Tracker…")
     init_db()
-    sync_data()
-    start_scheduler()
+    # Only run sync + scheduler in the first worker to avoid duplicate work
+    _lock_path = os.path.join(os.getenv("DATA_DIR", "/tmp"), ".sync_lock")
+    _is_primary = False
+    try:
+        # Non-blocking lock: first worker wins
+        _lock_fd = open(_lock_path, "w")
+        import fcntl
+        fcntl.flock(_lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        _is_primary = True
+        logger.info("Primary worker — running initial data sync")
+        sync_data()
+        start_scheduler()
+    except (IOError, OSError):
+        logger.info("Secondary worker — skipping sync/scheduler")
     yield
-    stop_scheduler()
+    if _is_primary:
+        stop_scheduler()
     logger.info("Shutdown complete.")
 
 
@@ -39,6 +52,12 @@ app.add_middleware(
 )
 
 app.include_router(router, prefix="/api")
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Unhandled error on {request.url.path}: {exc}", exc_info=True)
+    return JSONResponse(status_code=500, content={"detail": "Internal server error"})
 
 # Serve React SPA in production
 if os.path.isdir(FRONTEND_DIST):

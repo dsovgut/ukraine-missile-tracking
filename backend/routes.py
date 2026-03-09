@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from datetime import date, timedelta
 from typing import Any
 
@@ -14,6 +15,25 @@ from .models import DailyAttack, PersonnelLoss, WeatherData
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+# ─── simple TTL cache ─────────────────────────────────────────────────────────
+
+_cache: dict[str, tuple[float, Any]] = {}
+CACHE_TTL = 300  # 5 minutes
+
+
+def _get_cached(key: str) -> Any | None:
+    if key in _cache:
+        ts, val = _cache[key]
+        if time.time() - ts < CACHE_TTL:
+            return val
+        del _cache[key]
+    return None
+
+
+def _set_cached(key: str, val: Any) -> Any:
+    _cache[key] = (time.time(), val)
+    return val
 
 
 # ─── helpers ─────────────────────────────────────────────────────────────────
@@ -50,6 +70,10 @@ def health(db: Session = Depends(get_db)) -> dict[str, Any]:
 
 @router.get("/missile-types")
 def get_missile_types(db: Session = Depends(get_db)) -> list[dict]:
+    cached = _get_cached("missile-types")
+    if cached is not None:
+        return cached
+
     rows = (
         db.query(
             DailyAttack.model,
@@ -60,7 +84,7 @@ def get_missile_types(db: Session = Depends(get_db)) -> list[dict]:
         .order_by(func.sum(DailyAttack.launched).desc())
         .all()
     )
-    return [
+    result = [
         {
             "model": r.model,
             "total_launched": r.total_launched,
@@ -69,10 +93,15 @@ def get_missile_types(db: Session = Depends(get_db)) -> list[dict]:
         }
         for r in rows
     ]
+    return _set_cached("missile-types", result)
 
 
 @router.get("/daily")
 def get_daily(db: Session = Depends(get_db)) -> list[dict]:
+    cached = _get_cached("daily")
+    if cached is not None:
+        return cached
+
     agg = _agg_daily(db)
     if agg.empty:
         return []
@@ -96,11 +125,15 @@ def get_daily(db: Session = Depends(get_db)) -> list[dict]:
                 "cloud_cover": w.cloud_cover if w else None,
             }
         )
-    return result
+    return _set_cached("daily", result)
 
 
 @router.get("/weekly")
 def get_weekly(db: Session = Depends(get_db)) -> list[dict]:
+    cached = _get_cached("weekly")
+    if cached is not None:
+        return cached
+
     agg = _agg_daily(db)
     if agg.empty:
         return []
@@ -115,7 +148,7 @@ def get_weekly(db: Session = Depends(get_db)) -> list[dict]:
         .reset_index()
     )
 
-    return [
+    result = [
         {
             "week_start": str(row["week_start"].date()),
             "launched": int(row["launched"]),
@@ -125,10 +158,15 @@ def get_weekly(db: Session = Depends(get_db)) -> list[dict]:
         }
         for _, row in weekly.iterrows()
     ]
+    return _set_cached("weekly", result)
 
 
 @router.get("/stats")
 def get_stats(db: Session = Depends(get_db)) -> dict:
+    cached = _get_cached("stats")
+    if cached is not None:
+        return cached
+
     agg = _agg_daily(db)
     if agg.empty:
         return {}
@@ -148,7 +186,7 @@ def get_stats(db: Session = Depends(get_db)) -> dict:
 
     al, ad = int(agg["launched"].sum()), int(agg["destroyed"].sum())
 
-    return {
+    result = {
         "today": {"date": str(latest.date()), "launched": tl, "destroyed": td, "efficiency": _eff(td, tl)},
         "this_week": {"launched": wl, "destroyed": wd, "efficiency": _eff(wd, wl)},
         "this_month": {"launched": ml, "destroyed": md, "efficiency": _eff(md, ml)},
@@ -161,11 +199,16 @@ def get_stats(db: Session = Depends(get_db)) -> dict:
             "last_date": str(latest.date()),
         },
     }
+    return _set_cached("stats", result)
 
 
 @router.get("/by-model")
 def get_by_model(db: Session = Depends(get_db)) -> list[dict]:
     """Return per-model per-day data for the missile type breakdown chart."""
+    cached = _get_cached("by-model")
+    if cached is not None:
+        return cached
+
     rows = (
         db.query(
             DailyAttack.date,
@@ -177,7 +220,7 @@ def get_by_model(db: Session = Depends(get_db)) -> list[dict]:
         .order_by(DailyAttack.date)
         .all()
     )
-    return [
+    result = [
         {
             "date": str(r.date),
             "model": r.model,
@@ -186,3 +229,4 @@ def get_by_model(db: Session = Depends(get_db)) -> list[dict]:
         }
         for r in rows
     ]
+    return _set_cached("by-model", result)

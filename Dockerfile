@@ -24,4 +24,4 @@ COPY --from=frontend-build /app/frontend/dist ./frontend/dist
 EXPOSE ${PORT:-8000}
 
 ENV PORT=8000
-CMD uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+CMD uvicorn backend.main:app --host 0.0.0.0 --port $PORT --workers 2 --timeout-keep-alive 30 --limit-concurrency 50
