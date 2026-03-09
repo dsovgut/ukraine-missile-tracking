@@ -108,7 +108,17 @@ export default function Hero({ stats, loading, totalCasualties }: Props) {
               )}
             </p>
           </div>
-          <LangToggle />
+          <div className="flex items-center gap-3">
+            <a
+              href="https://www.brighterukraine.org/donate"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-2 bg-[#fbbf24] text-black text-xs font-bold uppercase tracking-wider rounded-lg hover:bg-[#f59e0b] transition-colors"
+            >
+              {t("donate")}
+            </a>
+            <LangToggle />
+          </div>
         </div>
 
         {loading || !stats ? (

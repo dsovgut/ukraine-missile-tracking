@@ -153,6 +153,8 @@ const translations = {
     footerData: "Data:",
     footerUpdated: "Updated daily.",
     footerBuilt: "Built to document the ongoing conflict in Ukraine. #StandWithUkraine",
+    // Donate
+    donate: "Donate",
   },
   uk: {
     // Hero
@@ -307,6 +309,8 @@ const translations = {
     footerData: "Дані:",
     footerUpdated: "Оновлюється щодня.",
     footerBuilt: "Створено для документування триваючого конфлікту в Україні. #СлаваУкраїні",
+    // Donate
+    donate: "Допомогти",
   },
 } as const;
 
