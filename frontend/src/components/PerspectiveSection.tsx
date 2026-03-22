@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import type { Stats, DailyData, MissileType } from "../types";
 import {
   VIETNAM_DEATHS,
@@ -469,6 +469,32 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
     return () => window.removeEventListener("keydown", handleKey);
   }, [goPrev, goNext, activeCard]);
 
+  // Touch swipe
+  const touchStart = useRef<number | null>(null);
+  const cardContainerRef = useRef<HTMLDivElement>(null);
+
+  function handleTouchStart(e: React.TouchEvent) {
+    touchStart.current = e.touches[0].clientX;
+  }
+  function handleTouchEnd(e: React.TouchEvent) {
+    if (touchStart.current === null) return;
+    const delta = e.changedTouches[0].clientX - touchStart.current;
+    touchStart.current = null;
+    if (Math.abs(delta) < 50) return;
+    if (delta < 0) { goNext(); setHasInteracted(true); }
+    else { goPrev(); setHasInteracted(true); }
+  }
+
+  // Track first interaction to dismiss hint
+  const [hasInteracted, setHasInteracted] = useState(() => {
+    try { return localStorage.getItem("perspective-interacted") === "1"; } catch { return false; }
+  });
+  useEffect(() => {
+    if (hasInteracted) {
+      try { localStorage.setItem("perspective-interacted", "1"); } catch { /* noop */ }
+    }
+  }, [hasInteracted]);
+
   // Deep-link
   useEffect(() => {
     if (deepLinkHandled[0]) return;
@@ -580,51 +606,71 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
 
         {/* Current card */}
         {currentCard && (
-          <button
-            onClick={() => openCard(currentCard)}
-            className="w-full text-left bg-brand-surface border border-brand-border rounded-xl p-6 sm:p-8 hover:border-[#333] hover:bg-[#161616] transition-all group cursor-pointer"
+          <div
+            ref={cardContainerRef}
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
           >
-            {/* Eyebrow */}
-            <span
-              className="inline-block text-[10px] font-bold uppercase tracking-widest mb-3"
-              style={{ color: currentCard.eyebrowColor }}
+            <button
+              onClick={() => { openCard(currentCard); setHasInteracted(true); }}
+              className={`w-full text-left bg-brand-surface border rounded-xl p-6 sm:p-8 hover:border-[#333] hover:bg-[#161616] transition-all group cursor-pointer relative ${
+                !hasInteracted ? "animate-card-glow" : "border-brand-border"
+              }`}
+              style={!hasInteracted ? { borderColor: currentCard.eyebrowColor + "66" } : undefined}
             >
-              {currentCard.eyebrow}
-            </span>
-
-            {/* Headline */}
-            <p className="text-white font-bold text-xl sm:text-2xl leading-snug mb-3">
-              {currentCard.headline}
-            </p>
-
-            {/* Subtext */}
-            <p className="text-brand-text text-sm sm:text-base leading-relaxed mb-2">
-              {currentCard.subtext}
-            </p>
-
-            {/* Mini bar preview */}
-            {renderMiniBars(currentCard)}
-
-            {/* Share CTA */}
-            <div className="flex items-center gap-2 mt-5 text-brand-muted group-hover:text-brand-red transition-colors">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="flex-shrink-0">
-                <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
-                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-              </svg>
-              <span className="text-xs font-semibold uppercase tracking-wider">
-                Tap to view details &amp; share
+              {/* Share pill */}
+              <span className="absolute top-4 right-4 flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/10 text-white/70 text-[10px] font-semibold uppercase tracking-wider group-hover:bg-[#005BBB] group-hover:text-white transition-all">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+                  <polyline points="16 6 12 2 8 6"/>
+                  <line x1="12" y1="2" x2="12" y2="15"/>
+                </svg>
+                Share
               </span>
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="flex-shrink-0">
-                <path d="M6 3L11 8L6 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </div>
-          </button>
+
+              {/* Eyebrow */}
+              <span
+                className="inline-block text-[10px] font-bold uppercase tracking-widest mb-3"
+                style={{ color: currentCard.eyebrowColor }}
+              >
+                {currentCard.eyebrow}
+              </span>
+
+              {/* Headline */}
+              <p className="text-white font-bold text-xl sm:text-2xl leading-snug mb-3 pr-16">
+                {currentCard.headline}
+              </p>
+
+              {/* Subtext */}
+              <p className="text-brand-text text-sm sm:text-base leading-relaxed mb-2">
+                {currentCard.subtext}
+              </p>
+
+              {/* Mini bar preview */}
+              {renderMiniBars(currentCard)}
+
+              {/* Tap to expand */}
+              <div className="flex items-center justify-center gap-1.5 mt-5 pt-4 border-t border-brand-border/50 text-brand-muted group-hover:text-white transition-colors">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+                <span className="text-xs font-semibold uppercase tracking-wider">Tap to expand</span>
+              </div>
+            </button>
+          </div>
+        )}
+
+        {/* Swipe hint */}
+        {!hasInteracted && filteredCards.length > 1 && (
+          <p className="text-center text-brand-muted text-xs mt-3 animate-fade-in-out">
+            Swipe or tap to explore &amp; share
+          </p>
         )}
 
         {/* Navigation buttons */}
         <div className="flex items-center justify-between mt-5">
           <button
-            onClick={goPrev}
+            onClick={() => { goPrev(); setHasInteracted(true); }}
             disabled={safeIndex === 0}
             className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg border border-brand-border text-brand-text hover:border-[#444] hover:text-white transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
           >
@@ -649,7 +695,7 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
           </div>
 
           <button
-            onClick={goNext}
+            onClick={() => { goNext(); setHasInteracted(true); }}
             disabled={safeIndex >= filteredCards.length - 1}
             className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg border border-brand-border text-brand-text hover:border-[#444] hover:text-white transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
           >

@@ -18,6 +18,20 @@ export default {
       fontFamily: {
         sans: ["Inter", "system-ui", "sans-serif"],
       },
+      animation: {
+        "card-glow": "card-glow 2s ease-in-out 3",
+        "fade-in-out": "fade-in-out 3s ease-in-out infinite",
+      },
+      keyframes: {
+        "card-glow": {
+          "0%, 100%": { boxShadow: "0 0 0 0 transparent" },
+          "50%": { boxShadow: "0 0 20px 2px var(--tw-shadow-color, rgba(0,91,187,0.3))" },
+        },
+        "fade-in-out": {
+          "0%, 100%": { opacity: "0.4" },
+          "50%": { opacity: "1" },
+        },
+      },
     },
   },
   plugins: [],
