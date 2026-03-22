@@ -469,20 +469,28 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
     return () => window.removeEventListener("keydown", handleKey);
   }, [goPrev, goNext, activeCard]);
 
-  // Touch swipe
-  const touchStart = useRef<number | null>(null);
+  // Swipe / drag support (touch + mouse)
+  const pointerStart = useRef<{ x: number; y: number } | null>(null);
+  const didSwipe = useRef(false);
   const cardContainerRef = useRef<HTMLDivElement>(null);
 
-  function handleTouchStart(e: React.TouchEvent) {
-    touchStart.current = e.touches[0].clientX;
+  function handlePointerDown(e: React.PointerEvent) {
+    pointerStart.current = { x: e.clientX, y: e.clientY };
+    didSwipe.current = false;
   }
-  function handleTouchEnd(e: React.TouchEvent) {
-    if (touchStart.current === null) return;
-    const delta = e.changedTouches[0].clientX - touchStart.current;
-    touchStart.current = null;
-    if (Math.abs(delta) < 50) return;
-    if (delta < 0) { goNext(); setHasInteracted(true); }
+  function handlePointerUp(e: React.PointerEvent) {
+    if (!pointerStart.current) return;
+    const dx = e.clientX - pointerStart.current.x;
+    const dy = e.clientY - pointerStart.current.y;
+    pointerStart.current = null;
+    if (Math.abs(dx) < 40 || Math.abs(dy) > Math.abs(dx)) return;
+    didSwipe.current = true;
+    if (dx < 0) { goNext(); setHasInteracted(true); }
     else { goPrev(); setHasInteracted(true); }
+  }
+  function handleCardClick() {
+    if (didSwipe.current) { didSwipe.current = false; return; }
+    if (currentCard) { openCard(currentCard); setHasInteracted(true); }
   }
 
   // Track first interaction to dismiss hint
@@ -608,15 +616,14 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
         {currentCard && (
           <div
             ref={cardContainerRef}
-            onTouchStart={handleTouchStart}
-            onTouchEnd={handleTouchEnd}
+            onPointerDown={handlePointerDown}
+            onPointerUp={handlePointerUp}
+            className="touch-pan-y select-none"
           >
             <button
-              onClick={() => { openCard(currentCard); setHasInteracted(true); }}
-              className={`w-full text-left bg-brand-surface border rounded-xl p-6 sm:p-8 hover:border-[#333] hover:bg-[#161616] transition-all group cursor-pointer relative ${
-                !hasInteracted ? "animate-card-glow" : "border-brand-border"
-              }`}
-              style={!hasInteracted ? { borderColor: currentCard.eyebrowColor + "66" } : undefined}
+              onClick={handleCardClick}
+              className="w-full text-left bg-brand-surface border rounded-xl p-6 sm:p-8 hover:border-[#333] hover:bg-[#161616] transition-all group cursor-pointer relative animate-card-glow"
+              style={{ borderColor: currentCard.eyebrowColor + "44" }}
             >
               {/* Share pill */}
               <span className="absolute top-4 right-4 flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/10 text-white/70 text-[10px] font-semibold uppercase tracking-wider group-hover:bg-[#005BBB] group-hover:text-white transition-all">
@@ -650,8 +657,8 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
               {renderMiniBars(currentCard)}
 
               {/* Tap to expand */}
-              <div className="flex items-center justify-center gap-1.5 mt-5 pt-4 border-t border-brand-border/50 text-brand-muted group-hover:text-white transition-colors">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
+              <div className="flex items-center justify-center gap-1.5 mt-5 pt-4 border-t border-brand-border/50 animate-tap-cta">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 animate-bounce-gentle">
                   <polyline points="6 9 12 15 18 9"/>
                 </svg>
                 <span className="text-xs font-semibold uppercase tracking-wider">Tap to expand</span>

@@ -19,17 +19,27 @@ export default {
         sans: ["Inter", "system-ui", "sans-serif"],
       },
       animation: {
-        "card-glow": "card-glow 2s ease-in-out 3",
+        "card-glow": "card-glow 2.5s ease-in-out infinite",
         "fade-in-out": "fade-in-out 3s ease-in-out infinite",
+        "tap-cta": "tap-cta 2s ease-in-out infinite",
+        "bounce-gentle": "bounce-gentle 2s ease-in-out infinite",
       },
       keyframes: {
         "card-glow": {
-          "0%, 100%": { boxShadow: "0 0 0 0 transparent" },
-          "50%": { boxShadow: "0 0 20px 2px var(--tw-shadow-color, rgba(0,91,187,0.3))" },
+          "0%, 100%": { boxShadow: "0 0 4px 0 rgba(0,91,187,0.15)" },
+          "50%": { boxShadow: "0 0 24px 4px rgba(0,91,187,0.35)" },
         },
         "fade-in-out": {
           "0%, 100%": { opacity: "0.4" },
           "50%": { opacity: "1" },
+        },
+        "tap-cta": {
+          "0%, 100%": { color: "#404040" },
+          "50%": { color: "#e2e8f0" },
+        },
+        "bounce-gentle": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(3px)" },
         },
       },
     },
