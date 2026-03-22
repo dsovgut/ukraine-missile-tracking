@@ -30,6 +30,7 @@ const translations = {
     shareCopyLink: "Copy Link",
     shareCopied: "Copied!",
     shareScreenshot: "Or just screenshot this card to share",
+    shareNative: "Share",
     shareEmbed: "Embed",
     shareEmbedCopied: "Embed code copied!",
     // Milestones
@@ -183,6 +184,7 @@ const translations = {
     shareCopyLink: "Копіювати",
     shareCopied: "Скопійовано!",
     shareScreenshot: "Або зробіть скріншот цієї картки для поширення",
+    shareNative: "Поширити",
     shareEmbed: "Вбудувати",
     shareEmbedCopied: "Код вбудовування скопійовано!",
     // Milestones

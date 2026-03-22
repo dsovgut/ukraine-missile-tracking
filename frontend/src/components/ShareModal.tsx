@@ -51,25 +51,56 @@ export default function ShareModal({ card, onClose }: Props) {
   const [copied, setCopied] = useState(false);
   const [embedCopied, setEmbedCopied] = useState(false);
 
+  async function generatePngBlob(): Promise<Blob | null> {
+    if (!cardRef.current) return null;
+    const dataUrl = await toPng(cardRef.current, {
+      pixelRatio: 3,
+      cacheBust: true,
+      style: { fontFamily: "system-ui, -apple-system, sans-serif" },
+    });
+    const res = await fetch(dataUrl);
+    return res.blob();
+  }
+
   async function handleDownload() {
     if (!cardRef.current) return;
     setDownloading(true);
     try {
-      const dataUrl = await toPng(cardRef.current, {
-        pixelRatio: 3,
-        cacheBust: true,
-        style: { fontFamily: "system-ui, -apple-system, sans-serif" },
-      });
+      const blob = await generatePngBlob();
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.download = "ukraine-in-perspective.png";
-      a.href = dataUrl;
+      a.href = url;
       a.click();
+      URL.revokeObjectURL(url);
     } catch {
       // fallback: prompt user to screenshot
     } finally {
       setDownloading(false);
     }
   }
+
+  async function handleNativeShare() {
+    if (!cardRef.current) return;
+    setDownloading(true);
+    try {
+      const blob = await generatePngBlob();
+      if (!blob) return;
+      const file = new File([blob], "ukraine-in-perspective.png", { type: "image/png" });
+      await navigator.share({
+        text: getShareText(),
+        url: SITE_URL,
+        files: [file],
+      });
+    } catch {
+      // user cancelled or API unavailable
+    } finally {
+      setDownloading(false);
+    }
+  }
+
+  const canNativeShare = typeof navigator !== "undefined" && !!navigator.share;
 
   function getShareText() {
     return `${card.headline}\n\n${card.bigNumber} — ${card.bigNumberCaption}\n\n#StandWithUkraine #UkraineMissileTracker`;
@@ -272,6 +303,22 @@ export default function ShareModal({ card, onClose }: Props) {
 
         {/* ── Social share buttons ─────────────────────────────────── */}
         <div className="flex flex-wrap gap-2 justify-center flex-shrink-0">
+          {/* Native Share (mobile / supported browsers) */}
+          {canNativeShare && (
+            <button
+              onClick={handleNativeShare}
+              disabled={downloading}
+              className="px-4 py-2 bg-[#005BBB] text-white text-sm font-bold rounded-lg hover:bg-[#004a99] transition-colors disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+                <polyline points="16 6 12 2 8 6"/>
+                <line x1="12" y1="2" x2="12" y2="15"/>
+              </svg>
+              {t("shareNative")}
+            </button>
+          )}
+
           {/* Save Image */}
           <button
             onClick={handleDownload}

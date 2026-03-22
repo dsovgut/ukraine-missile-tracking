@@ -404,7 +404,6 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
   // ── Card grid definitions ─────────────────────────────────────────────────
 
   const cards: CardDef[] = [
-    // Live data cards (first two — always fresh)
     {
       id: "todayAttack",
       eyebrow: "Live Data",
@@ -419,6 +418,14 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
       isHero: true,
     },
     {
+      id: "warEconomy",
+      eyebrow: "Economy",
+      eyebrowColor: "#a78bfa",
+      headline: `$${(RUSSIA_CUMULATIVE_DEFENSE_SPEND / 1e9).toFixed(0)}B — could end world hunger for a decade`,
+      subtext: "Or provide clean water globally for 5 years. Or build a permanent Moon colony.",
+      build: buildWarEconomyCard,
+    },
+    {
       id: "weekSummary",
       eyebrow: "Live Data",
       eyebrowColor: "#ef4444",
@@ -427,7 +434,6 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
       build: buildWeekSummaryCard,
       isHero: true,
     },
-    // Hero cards
     {
       id: "totalMissiles",
       eyebrow: "Overview",
@@ -436,24 +442,6 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
       subtext: `The most intense aerial bombardment of the 21st century. ${efficiency.toFixed(1)}% intercepted. ~${avgPerDay}/day average.`,
       build: buildTotalMissilesHeroCard,
       isHero: true,
-    },
-    {
-      id: "explosiveYield",
-      eyebrow: "Explosive Scale",
-      eyebrowColor: "#f97316",
-      headline: `~${totalPayloadKt.toFixed(1)} kilotons on Ukraine`,
-      subtext: `Nearly ${(hiroshimaFraction * 100).toFixed(0)}% of the Hiroshima bomb's yield — delivered conventionally, block by block, over ${days.toLocaleString()} days.`,
-      build: buildExplosiveYieldHeroCard,
-      isHero: true,
-    },
-    // Regular perspective cards
-    {
-      id: "afghan",
-      eyebrow: "Personnel",
-      eyebrowColor: "#f59e0b",
-      headline: `${(totalCasualties / SOVIET_AFGHAN_DEATHS).toFixed(1)}× the Soviet-Afghan War`,
-      subtext: `${totalCasualties.toLocaleString()} Russian losses vs. 15,000 over 10 years`,
-      build: buildAfghanCard,
     },
     {
       id: "postWWII",
@@ -472,22 +460,6 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
         ? `Now longer than US involvement in WWII (${US_WWII_DAYS.toLocaleString()} days)`
         : `Approaching US involvement in WWII (${US_WWII_DAYS.toLocaleString()} days) — just ${US_WWII_DAYS - days} days away`,
       build: buildDurationCard,
-    },
-    {
-      id: "shockAndAwe",
-      eyebrow: "Missiles",
-      eyebrowColor: "#ef4444",
-      headline: `${Math.round(totalLaunched / SHOCK_AND_AWE_MISSILES)}× "Shock and Awe"`,
-      subtext: `Russia surpassed the entire 2003 Iraq War's 800 Tomahawks in the first months`,
-      build: buildShockAndAweCard,
-    },
-    {
-      id: "desertStorm",
-      eyebrow: "Missiles",
-      eyebrowColor: "#ef4444",
-      headline: `${Math.round(totalLaunched / DESERT_STORM_MISSILES)}× Desert Storm`,
-      subtext: `${totalLaunched.toLocaleString()} missiles vs. just ${DESERT_STORM_MISSILES} in the Gulf War`,
-      build: buildDesertStormCard,
     },
     {
       id: "cost",
@@ -513,14 +485,6 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
       subtext: `${bestDefenseDay.launched} missiles launched, ${bestDefenseDay.destroyed} intercepted on ${new Date(bestDefenseDay.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`,
       build: buildBestDefenseDayCard,
     }] as CardDef[] : []),
-    {
-      id: "warEconomy",
-      eyebrow: "Economy",
-      eyebrowColor: "#a78bfa",
-      headline: `$${(RUSSIA_CUMULATIVE_DEFENSE_SPEND / 1e9).toFixed(0)}B — could end world hunger for a decade`,
-      subtext: "Or provide clean water globally for 5 years. Or build a permanent Moon colony.",
-      build: buildWarEconomyCard,
-    },
     {
       id: "welfareWarfare",
       eyebrow: "Economy",
