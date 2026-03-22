@@ -55,10 +55,10 @@ function AppInner() {
           <Suspense fallback={<ChartSpinner />}>
             <MilestoneBanner stats={stats} totalCasualties={totalCasualties} />
             <RecordCallout daily={daily} variant="attacks" />
+            <TimeSeriesChart data={daily} />
             <PersonnelLosses data={weekly} />
             <PerspectiveSection stats={stats} daily={daily} missileTypes={missileTypes} />
             <CountryCompare stats={stats} />
-            <TimeSeriesChart data={daily} />
             <RecordCallout daily={daily} variant="defense" />
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
               <WeeklyBarsChart data={weekly} />

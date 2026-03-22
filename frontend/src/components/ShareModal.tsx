@@ -254,6 +254,9 @@ export default function ShareModal({ card, onClose }: Props) {
                   {card.sourceNote}
                 </p>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2 }}>
+                  <p style={{ fontSize: 10, fontWeight: 700, color: "#737373", letterSpacing: "0.02em" }}>
+                    trackingrockets.com
+                  </p>
                   <div style={{ display: "flex", gap: 4 }}>
                     <div style={{ width: 6, height: 6, background: "#005BBB", borderRadius: 1 }} />
                     <div style={{ width: 6, height: 6, background: "#FFD700", borderRadius: 1 }} />

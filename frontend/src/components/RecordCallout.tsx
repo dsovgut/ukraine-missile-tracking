@@ -97,18 +97,18 @@ export default function RecordCallout({ daily, variant }: Props) {
         ];
 
   return (
-    <div className="grid grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       {cards.map((c) => (
         <div
           key={c.label}
-          className="flex items-start gap-4 rounded-xl border border-brand-border bg-brand-card px-6 py-5"
+          className="flex items-start gap-3 sm:gap-4 rounded-xl border border-brand-border bg-brand-card px-4 sm:px-6 py-4 sm:py-5 overflow-hidden"
         >
-          <span className="text-3xl mt-1">{c.icon}</span>
-          <div>
+          <span className="text-2xl sm:text-3xl mt-1 flex-shrink-0">{c.icon}</span>
+          <div className="min-w-0">
             <div className="text-xs font-semibold uppercase tracking-widest text-[#555] mb-2">
               {c.label}
             </div>
-            <div className="text-3xl font-black text-white leading-none tabular-nums">{c.value}</div>
+            <div className="text-2xl sm:text-3xl font-black text-white leading-none tabular-nums break-words">{c.value}</div>
             <div className="text-sm text-[#555] mt-2">{c.detail}</div>
           </div>
         </div>
