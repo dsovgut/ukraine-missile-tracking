@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useState, useEffect } from "react";
 import Hero from "./components/Hero";
 import RecordCallout from "./components/RecordCallout";
 import PerspectiveSection from "./components/PerspectiveSection";
@@ -95,7 +95,35 @@ function AppInner() {
         </p>
         <p className="mt-1 text-xs text-brand-muted">{t("footerBuilt")}</p>
       </footer>
+
+      <ScrollToTop />
     </div>
+  );
+}
+
+function ScrollToTop() {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    function onScroll() {
+      setVisible(window.scrollY > 600);
+    }
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  if (!visible) return null;
+
+  return (
+    <button
+      onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+      className="fixed bottom-6 right-6 z-40 w-11 h-11 flex items-center justify-center rounded-full bg-brand-card border border-brand-border text-brand-text hover:text-white hover:border-[#444] hover:bg-[#222] transition-all cursor-pointer shadow-lg"
+      aria-label="Scroll to top"
+    >
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="18 15 12 9 6 15"/>
+      </svg>
+    </button>
   );
 }
 
