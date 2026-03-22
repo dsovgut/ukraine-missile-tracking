@@ -1,17 +1,11 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import type { Stats, DailyData, MissileType } from "../types";
 import {
-  SOVIET_AFGHAN_DEATHS,
   VIETNAM_DEATHS,
   US_IRAQ_DEATHS,
   US_AFGHAN_DEATHS,
-  DESERT_STORM_MISSILES,
   IRON_DOME_RATE,
   US_WWII_DAYS,
-  AVG_MISSILE_WARHEAD_KG,
-  AVG_DRONE_WARHEAD_KG,
-  HIROSHIMA_YIELD_KT,
-  SHOCK_AND_AWE_MISSILES,
   RUSSIA_CUMULATIVE_DEFENSE_SPEND,
   RUSSIA_DEFENSE_BUDGET_SHARE,
   RUSSIA_POPULATION,
@@ -54,19 +48,6 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
   // Real days since Feb 24, 2022 (full-scale invasion start)
   const INVASION_START = new Date("2022-02-24T00:00:00Z").getTime();
   const days = Math.floor((Date.now() - INVASION_START) / (86_400_000));
-
-  // Estimate drone count (Shahed types)
-  const droneTypes = missileTypes.filter(
-    (m) => m.model.toLowerCase().includes("shahed") || m.model.toLowerCase().includes("drone"),
-  );
-  const totalDrones = droneTypes.reduce((s, m) => s + m.total_launched, 0);
-  const totalMissilesOnly = totalLaunched - totalDrones;
-
-  // Explosive yield estimate (kilotons)
-  const missilePayloadTons = (totalMissilesOnly * AVG_MISSILE_WARHEAD_KG) / 1000;
-  const dronePayloadTons = (totalDrones * AVG_DRONE_WARHEAD_KG) / 1000;
-  const totalPayloadKt = (missilePayloadTons + dronePayloadTons) / 1000;
-  const hiroshimaFraction = totalPayloadKt / HIROSHIMA_YIELD_KT;
 
   // Russia war economy
   const costPerCitizen = Math.round(RUSSIA_CUMULATIVE_DEFENSE_SPEND / RUSSIA_POPULATION);
@@ -158,39 +139,6 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
     };
   }
 
-  function buildExplosiveYieldHeroCard(): ShareCardData {
-    return {
-      category: "Explosive Scale",
-      categoryColor: "#f97316",
-      headline: `~${totalPayloadKt.toFixed(1)} kilotons of explosives rained on Ukraine — nearly ${(hiroshimaFraction * 100).toFixed(0)}% of Hiroshima`,
-      bigNumber: `${totalPayloadKt.toFixed(1)} kt`,
-      bigNumberCaption: "estimated total explosive payload delivered to Ukraine",
-      comparisonNote: `The atomic bomb dropped on Hiroshima had a yield of about ${HIROSHIMA_YIELD_KT} kilotons. Russia has delivered roughly ${(hiroshimaFraction * 100).toFixed(0)}% of that explosive power — distributed conventionally, city block by city block, day after day, over ${days.toLocaleString()} days.`,
-      bars: [
-        { label: "Russia → Ukraine (conventional)", sublabel: `${totalPayloadKt.toFixed(1)} kt over ${days.toLocaleString()} days`, value: Math.round(totalPayloadKt * 1000), color: "#f97316", isHighlight: true },
-        { label: "Hiroshima (atomic)", sublabel: "single detonation, Aug 6 1945", value: HIROSHIMA_YIELD_KT * 1000, color: "#a78bfa" },
-      ],
-      sourceNote: "Estimate: avg cruise/ballistic warhead ~500 kg, Shahed ~45 kg. Hiroshima: ~15 kilotons yield. Note: conventional vs nuclear yield is not directly comparable but illustrates industrial scale.",
-    };
-  }
-
-  function buildAfghanCard(): ShareCardData {
-    const ratio = totalCasualties / SOVIET_AFGHAN_DEATHS;
-    return {
-      category: "Personnel",
-      categoryColor: "#f59e0b",
-      headline: `Russia has already lost the equivalent of ${ratio.toFixed(1)}× the entire Soviet-Afghan War`,
-      bigNumber: `${ratio.toFixed(1)}×`,
-      bigNumberCaption: "Soviet-Afghan Wars worth of Russian deaths",
-      comparisonNote: "The Soviet-Afghan War (1979–1989) killed ~15,000 Soviet soldiers over 10 years — and helped bring down the USSR. Russia has far exceeded that toll in Ukraine.",
-      bars: [
-        { label: "Russia in Ukraine", sublabel: "since Feb 24, 2022", value: totalCasualties, color: "#ef4444", isHighlight: true },
-        { label: "Soviet-Afghan War", sublabel: "1979–1989, 10 years", value: SOVIET_AFGHAN_DEATHS, color: "#f59e0b" },
-      ],
-      sourceNote: "Russia: Ukraine MoD daily reports / Mediazona verified count. Soviet-Afghan: official Soviet records (~14,453; ~15,000 widely cited).",
-    };
-  }
-
   function buildPostWWIICard(): ShareCardData {
     const combined = VIETNAM_DEATHS + US_IRAQ_DEATHS + US_AFGHAN_DEATHS;
     return {
@@ -207,40 +155,6 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
         { label: "US Afghanistan", sublabel: "2001–2021 · 2,459 deaths", value: US_AFGHAN_DEATHS, color: "#34d399" },
       ],
       sourceNote: "Russia: Ukraine MoD / Mediazona. US figures: National Archives DCAS, DoD official records.",
-    };
-  }
-
-  function buildDesertStormCard(): ShareCardData {
-    const ratio = Math.round(totalLaunched / DESERT_STORM_MISSILES);
-    return {
-      category: "Missiles",
-      categoryColor: "#ef4444",
-      headline: `Russia has fired ${ratio}× more missiles at Ukraine than the US fired in the entire Gulf War`,
-      bigNumber: `${ratio}×`,
-      bigNumberCaption: `more than Desert Storm — which fired just ${DESERT_STORM_MISSILES} Tomahawks in 1991`,
-      comparisonNote: "Operation Desert Storm was considered the most intensive precision missile campaign in modern history — until Ukraine.",
-      bars: [
-        { label: "Russia → Ukraine", sublabel: `since Feb 2022 · ${totalLaunched.toLocaleString()} missiles`, value: totalLaunched, color: "#ef4444", isHighlight: true },
-        { label: "Desert Storm (1991)", sublabel: "all cruise missiles fired", value: DESERT_STORM_MISSILES, color: "#60a5fa" },
-      ],
-      sourceNote: "Ukraine data: Kaggle/piterfm (official Ukrainian reports). Desert Storm: US Navy records — 288 TLAMs launched.",
-    };
-  }
-
-  function buildShockAndAweCard(): ShareCardData {
-    const ratio = Math.round(totalLaunched / SHOCK_AND_AWE_MISSILES);
-    return {
-      category: "Missiles",
-      categoryColor: "#ef4444",
-      headline: `${ratio}× the "Shock and Awe" campaign — Russia has fired ${totalLaunched.toLocaleString()} missiles vs 800 in Iraq 2003`,
-      bigNumber: `${ratio}×`,
-      bigNumberCaption: "more than the entire 2003 Iraq 'Shock and Awe' campaign",
-      comparisonNote: "During the highly publicized 'Shock and Awe' campaign in the opening weeks of the 2003 Iraq War, the US and allies fired roughly 800 Tomahawk cruise missiles. Russia surpassed that in the first months of 2022 and has since fired more than twelve times that amount.",
-      bars: [
-        { label: "Russia → Ukraine", sublabel: `since Feb 2022 · ${totalLaunched.toLocaleString()} total`, value: totalLaunched, color: "#ef4444", isHighlight: true },
-        { label: "Shock & Awe (Iraq 2003)", sublabel: `~${SHOCK_AND_AWE_MISSILES} Tomahawks`, value: SHOCK_AND_AWE_MISSILES, color: "#60a5fa" },
-      ],
-      sourceNote: "Ukraine: official Ukrainian Air Force reports. Iraq 2003: US DoD public records — ~800 TLAMs in opening weeks.",
     };
   }
 
