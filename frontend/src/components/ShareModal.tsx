@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
 import { toPng } from "html-to-image";
 import { useTranslation } from "../i18n";
 
@@ -25,6 +25,8 @@ export interface ShareCardData {
 interface Props {
   card: ShareCardData;
   onClose: () => void;
+  onPrev?: () => void;
+  onNext?: () => void;
 }
 
 const SITE_URL = typeof window !== "undefined" ? window.location.origin : "";
@@ -44,10 +46,36 @@ function renderHighlightedText(text: string, color: string) {
   });
 }
 
-export default function ShareModal({ card, onClose }: Props) {
+export default function ShareModal({ card, onClose, onPrev, onNext }: Props) {
   const { t } = useTranslation();
   const cardRef = useRef<HTMLDivElement>(null);
   const [downloading, setDownloading] = useState(false);
+
+  // Keyboard nav
+  const handleKey = useCallback((e: KeyboardEvent) => {
+    if (e.key === "ArrowLeft" && onPrev) { e.preventDefault(); onPrev(); }
+    if (e.key === "ArrowRight" && onNext) { e.preventDefault(); onNext(); }
+    if (e.key === "Escape") { e.preventDefault(); onClose(); }
+  }, [onPrev, onNext, onClose]);
+
+  useEffect(() => {
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [handleKey]);
+
+  // Touch swipe
+  const touchStartX = useRef<number | null>(null);
+  function handleTouchStart(e: React.TouchEvent) {
+    touchStartX.current = e.touches[0].clientX;
+  }
+  function handleTouchEnd(e: React.TouchEvent) {
+    if (touchStartX.current === null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    touchStartX.current = null;
+    if (Math.abs(dx) < 50) return;
+    if (dx < 0 && onNext) onNext();
+    else if (dx > 0 && onPrev) onPrev();
+  }
 
   async function generatePngBlob(): Promise<Blob | null> {
     if (!cardRef.current) return null;
@@ -110,7 +138,33 @@ export default function ShareModal({ card, onClose }: Props) {
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4"
       onClick={onClose}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
     >
+      {/* Left arrow */}
+      {onPrev && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onPrev(); }}
+          className="absolute left-2 sm:left-6 top-1/2 -translate-y-1/2 z-50 w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
+        >
+          <svg width="20" height="20" viewBox="0 0 16 16" fill="none">
+            <path d="M10 3L5 8L10 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+      )}
+
+      {/* Right arrow */}
+      {onNext && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onNext(); }}
+          className="absolute right-2 sm:right-6 top-1/2 -translate-y-1/2 z-50 w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
+        >
+          <svg width="20" height="20" viewBox="0 0 16 16" fill="none">
+            <path d="M6 3L11 8L6 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+      )}
+
       <div
         className="flex flex-col items-center gap-4 max-h-screen overflow-y-auto py-4"
         onClick={(e) => e.stopPropagation()}

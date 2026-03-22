@@ -469,25 +469,31 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
     return () => window.removeEventListener("keydown", handleKey);
   }, [goPrev, goNext, activeCard]);
 
-  // Swipe / drag support (touch + mouse)
-  const pointerStart = useRef<{ x: number; y: number } | null>(null);
+  // Swipe (touch) + drag (mouse) support
+  const swipeStart = useRef<{ x: number; y: number } | null>(null);
   const didSwipe = useRef(false);
   const cardContainerRef = useRef<HTMLDivElement>(null);
 
-  function handlePointerDown(e: React.PointerEvent) {
-    pointerStart.current = { x: e.clientX, y: e.clientY };
+  function onSwipeStart(x: number, y: number) {
+    swipeStart.current = { x, y };
     didSwipe.current = false;
   }
-  function handlePointerUp(e: React.PointerEvent) {
-    if (!pointerStart.current) return;
-    const dx = e.clientX - pointerStart.current.x;
-    const dy = e.clientY - pointerStart.current.y;
-    pointerStart.current = null;
-    if (Math.abs(dx) < 40 || Math.abs(dy) > Math.abs(dx)) return;
+  function onSwipeEnd(x: number, y: number) {
+    if (!swipeStart.current) return;
+    const dx = x - swipeStart.current.x;
+    const dy = y - swipeStart.current.y;
+    swipeStart.current = null;
+    if (Math.abs(dx) < 50 || Math.abs(dy) > Math.abs(dx)) return;
     didSwipe.current = true;
     if (dx < 0) { goNext(); setHasInteracted(true); }
     else { goPrev(); setHasInteracted(true); }
   }
+
+  function handleTouchStart(e: React.TouchEvent) { onSwipeStart(e.touches[0].clientX, e.touches[0].clientY); }
+  function handleTouchEnd(e: React.TouchEvent) { onSwipeEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY); }
+  function handleMouseDown(e: React.MouseEvent) { onSwipeStart(e.clientX, e.clientY); }
+  function handleMouseUp(e: React.MouseEvent) { onSwipeEnd(e.clientX, e.clientY); }
+
   function handleCardClick() {
     if (didSwipe.current) { didSwipe.current = false; return; }
     if (currentCard) { openCard(currentCard); setHasInteracted(true); }
@@ -527,6 +533,24 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
   function closeCard() {
     setActiveCard(null);
     window.history.replaceState(null, "", window.location.pathname);
+  }
+
+  function modalPrev() {
+    if (safeIndex <= 0) return;
+    const newIdx = safeIndex - 1;
+    setCurrentIndex(newIdx);
+    const c = filteredCards[newIdx];
+    setActiveCard(c.build());
+    window.history.replaceState(null, "", `#card=${c.id}`);
+  }
+
+  function modalNext() {
+    if (safeIndex >= filteredCards.length - 1) return;
+    const newIdx = safeIndex + 1;
+    setCurrentIndex(newIdx);
+    const c = filteredCards[newIdx];
+    setActiveCard(c.build());
+    window.history.replaceState(null, "", `#card=${c.id}`);
   }
 
   // ── Render mini bar preview ──────────────────────────────────────────────
@@ -616,9 +640,11 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
         {currentCard && (
           <div
             ref={cardContainerRef}
-            onPointerDown={handlePointerDown}
-            onPointerUp={handlePointerUp}
-            className="touch-pan-y select-none"
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+            onMouseDown={handleMouseDown}
+            onMouseUp={handleMouseUp}
+            className="select-none"
           >
             <button
               onClick={handleCardClick}
@@ -715,7 +741,12 @@ export default function PerspectiveSection({ stats, daily, missileTypes }: Props
       </section>
 
       {activeCard && (
-        <ShareModal card={activeCard} onClose={closeCard} />
+        <ShareModal
+          card={activeCard}
+          onClose={closeCard}
+          onPrev={safeIndex > 0 ? modalPrev : undefined}
+          onNext={safeIndex < filteredCards.length - 1 ? modalNext : undefined}
+        />
       )}
     </>
   );
